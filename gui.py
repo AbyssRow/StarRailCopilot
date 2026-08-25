@@ -85,25 +85,40 @@ def func(ev: threading.Event):
         uvicorn.run("module.webui.app:app", host=host, port=port, factory=True)
 
 
+def supervise_web_process(
+        process_factory=None,
+        event_factory=Event,
+        wait_interval=1,
+):
+    if process_factory is None:
+        process_factory = lambda event: Process(target=func, args=(event,))
+
+    should_exit = False
+    while not should_exit:
+        event = event_factory()
+        process = process_factory(event)
+        process.start()
+        while not should_exit:
+            try:
+                reload_requested = event.wait(wait_interval)
+            except KeyboardInterrupt:
+                should_exit = True
+                break
+            if reload_requested:
+                process.kill()
+                break
+            if process.is_alive():
+                continue
+            logger.warning(
+                f'Web server process exited unexpectedly with code '
+                f'{getattr(process, "exitcode", None)}; restarting'
+            )
+            break
+        process.join()
+
+
 if __name__ == "__main__":
     if State.deploy_config.EnableReload:
-        should_exit = False
-        while not should_exit:
-            event = Event()
-            process = Process(target=func, args=(event,))
-            process.start()
-            while not should_exit:
-                try:
-                    b = event.wait(1)
-                except KeyboardInterrupt:
-                    should_exit = True
-                    break
-                if b:
-                    process.kill()
-                    break
-                elif process.is_alive():
-                    continue
-                else:
-                    should_exit = True
+        supervise_web_process()
     else:
         func(None)

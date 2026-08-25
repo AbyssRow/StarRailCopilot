@@ -15,6 +15,9 @@ when updating from `LmeSzinc/StarRailCopilot:master`.
   process to disappear.
 - Startup timeout, partial Device initialization, task exceptions, `SystemExit`,
   SIGTERM, and GUI manual stop must attempt AVD cleanup.
+- A task that still fails after SRC retries must stop its scheduler and AVD but
+  must not take down the Web UI. An unexpected Uvicorn child exit is restarted
+  inside the persistent `gui.py` supervisor; systemd remains the outer backstop.
 - Never infer boot completion with a fixed sleep. Keep monotonic deadlines and
   polling.
 - Never add `-wipe-data`, a temporary `-data` path, or another option that
@@ -29,10 +32,12 @@ when updating from `LmeSzinc/StarRailCopilot:master`.
   scheduler exit cleanup.
 - `module/device/device.py`: cleanup after partial Device initialization.
 - `module/webui/process_manager.py`: Linux SIGTERM grace before SIGKILL.
+- `gui.py`: persistent Web child-process supervisor and in-process restart.
 - `tests/test_platform_linux.py`: AVD settings/start/stop/platform tests.
 - `tests/test_alas_linux_avd.py`: scheduler, exception, and GUI-stop tests.
 - `tests/test_sync_upstream_workflow.py`: automatic-sync schedule and alert
   contract.
+- `tests/test_gui_supervisor.py`: unexpected Web child-exit restart contract.
 - `.github/workflows/sync-upstream.yml`: upstream merge, verification, push, and
   GitHub Issue alert workflow.
 - `doc/linux-avd.md`: user-facing setup and operating guide.
@@ -63,9 +68,11 @@ when updating from `LmeSzinc/StarRailCopilot:master`.
 Local files `config/deploy.yaml`, `config/src.json`, and `config/src2.json` are
 intentionally ignored by Git. Never commit them. They may contain account state
 or a Web password: do not read, print, log, copy, or overwrite password values.
-The Web UI is bound to loopback until remote access is deliberately secured.
-Prefer Tailscale and a firewall rule limited to `tailscale0`; do not expose port
-22367 directly to the public Internet.
+At the user's explicit request, the Web UI listens on `0.0.0.0:22367` for the
+existing direct remote-access setup and uses the password stored in the ignored
+deploy config. Tailscale Serve and Funnel are disabled. TLS is not configured,
+so future maintenance should prefer adding HTTPS when a domain/certificate is
+available; never print or overwrite the password while doing so.
 
 The repository pins `av==10.0.0`, which is incompatible with this host's current
 FFmpeg toolchain. Installed dependencies use ADB screenshots, and local
