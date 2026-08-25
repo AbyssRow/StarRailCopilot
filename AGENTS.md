@@ -42,23 +42,30 @@ when updating from `LmeSzinc/StarRailCopilot:master`.
 - Repository: `/home/abyssrow/StarRailCopilot`
 - Python: `/home/abyssrow/StarRailCopilot/.venv/bin/python` (3.10)
 - Android SDK: `/home/abyssrow/Android/Sdk`
-- AVD: `src-cloud`
-- AVD data: `/home/abyssrow/.android/avd/src-cloud.avd`
-- Serial: `emulator-5554`
+- Primary config/AVD: `src` / `src-cloud` / `emulator-5554`
+- Secondary config/AVD: `src2` / `src-cloud-2` / `emulator-5556`
+- Persistent AVD data:
+  `/home/abyssrow/.android/avd/{src-cloud,src-cloud-2}.avd`
 - Image: Android 11 / API 30 Google APIs x86_64
 - ARM translation: `libndk_translation.so`; the cloud APK is ARM-only.
 - Runtime: KVM, 2 vCPU, 2048 MB guest RAM, `-gpu host`, headless.
-- Screenshot/control: `ADB` and `MaaTouch`. DroidCast is unreliable on this
-  image and must not be selected without a fresh real-device test.
+- Screenshot/control: `ADB` and `MaaTouch` on both configs. A 2026-08-25
+  real-AVD test measured ADB at about 378 ms, uiautomator2 at 425 ms, and
+  ADB_nc at 579 ms with truncation retries. Scrcpy cannot decode without the
+  unavailable compatible PyAV dependency. DroidCast is unreliable on this
+  image. Do not change screenshot methods without a fresh real-device test.
+- The configs deliberately use separate AVDs because cloud-game login state is
+  stored in Android userdata. `src` uses server update `04:00`; every enabled
+  task in `src2` uses `04:30` to reduce simultaneous boots on the old CPU.
 - Web service: `systemctl --user status starrailcopilot-web`
 - Web unit: `/home/abyssrow/.config/systemd/user/starrailcopilot-web.service`
 
-Local files `config/deploy.yaml` and `config/src.json` are intentionally ignored
-by Git. Never commit them. They may contain account state or a Web password: do
-not read, print, log, copy, or overwrite password values. The Web UI is bound to
-loopback until remote access is deliberately secured. Prefer Tailscale and a
-firewall rule limited to `tailscale0`; do not expose port 22367 directly to the
-public Internet.
+Local files `config/deploy.yaml`, `config/src.json`, and `config/src2.json` are
+intentionally ignored by Git. Never commit them. They may contain account state
+or a Web password: do not read, print, log, copy, or overwrite password values.
+The Web UI is bound to loopback until remote access is deliberately secured.
+Prefer Tailscale and a firewall rule limited to `tailscale0`; do not expose port
+22367 directly to the public Internet.
 
 The repository pins `av==10.0.0`, which is incompatible with this host's current
 FFmpeg toolchain. Installed dependencies use ADB screenshots, and local
@@ -79,9 +86,10 @@ git status --short
 
 The config generator must leave no unexpected tracked diff. For a real-machine
 check, start from an already stopped AVD, verify all five readiness gates, take
-an ADB screenshot, stop through the SRC cleanup path, and confirm both
-`emulator-5554` and the matching QEMU process disappear. Do not inspect or log
-the user's account screen or credentials.
+an ADB screenshot, stop through the SRC cleanup path, and confirm both the
+configured serial and its exact QEMU process disappear. Test `src` and `src2`
+separately; never copy userdata between them. Do not inspect or log the user's
+account screen or credentials.
 
 ## Automatic upstream sync and alerts
 
