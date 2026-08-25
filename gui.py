@@ -1,6 +1,7 @@
 import threading
 from multiprocessing import Event, Process
 
+from module.device.env import IS_LINUX
 from module.logger import logger
 from module.webui.setting import State
 
@@ -103,18 +104,47 @@ def supervise_web_process(
                 reload_requested = event.wait(wait_interval)
             except KeyboardInterrupt:
                 should_exit = True
+                if IS_LINUX:
+                    _stop_web_process(process)
                 break
             if reload_requested:
                 process.kill()
                 break
             if process.is_alive():
                 continue
+            if not IS_LINUX:
+                should_exit = True
+                break
             logger.warning(
                 f'Web server process exited unexpectedly with code '
                 f'{getattr(process, "exitcode", None)}; restarting'
             )
             break
-        process.join()
+        if not should_exit:
+            process.join()
+
+
+def _stop_web_process(process, grace=None):
+    """Stop a Web child without leaving it behind on parent shutdown."""
+    if grace is None:
+        grace = 90 if IS_LINUX else 5
+    try:
+        process.terminate()
+    except (OSError, RuntimeError):
+        pass
+    try:
+        process.join(timeout=grace)
+    except (OSError, RuntimeError):
+        pass
+    if process.is_alive():
+        try:
+            process.kill()
+        except (OSError, RuntimeError):
+            pass
+        try:
+            process.join(timeout=5)
+        except (OSError, RuntimeError):
+            pass
 
 
 if __name__ == "__main__":

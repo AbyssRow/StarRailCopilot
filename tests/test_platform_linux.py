@@ -1,4 +1,5 @@
 import unittest
+import signal
 from subprocess import CompletedProcess
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -67,9 +68,17 @@ class LinuxAVDSettingsTest(unittest.TestCase):
             {'LinuxAVD_MemoryMB': 1024},
             {'LinuxAVD_MemoryMB': 8193},
             {'EmulatorInfo_name': ''},
+            {'EmulatorInfo_name': '../src-cloud'},
+            {'EmulatorInfo_name': 'src cloud'},
+            {'EmulatorInfo_name': '..'},
+            {'EmulatorInfo_name': '-wipe-data'},
             {'LinuxAVD_GPU': ''},
             {'LinuxAVD_StartTimeout': 0},
             {'LinuxAVD_StopTimeout': -1},
+            {'LinuxAVD_StartTimeout': float('nan')},
+            {'LinuxAVD_StopTimeout': float('inf')},
+            {'LinuxAVD_MemoryMB': 'not-a-number'},
+            {'LinuxAVD_StartTimeout': 'not-a-number'},
         ]
 
         for overrides in invalid:
@@ -385,6 +394,90 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
         self.assertEqual(kill_boundary.process.kill_calls, 1)
         self.assertEqual(kill_boundary.unrelated.kill_calls, 0)
 
+    def test_launched_emulator_fallback_signals_the_complete_process_group(self):
+        """Catches a launcher dying while its QEMU child remains alive."""
+        boundary = StopBoundary(kill_result='none')
+        lifecycle = self.lifecycle(boundary)
+        lifecycle._launched_process_group = boundary.process.pid
+
+        def kill_group(process_group, signum):
+            self.assertEqual(process_group, boundary.process.pid)
+            self.assertEqual(signum, signal.SIGTERM)
+            boundary.running = False
+            boundary.serial_online = False
+
+        with patch(
+            'module.device.platform.platform_linux.os.killpg',
+            side_effect=kill_group,
+        ) as killpg, patch(
+            'module.device.platform.platform_linux.os.getpgid',
+            return_value=boundary.process.pid,
+        ):
+            self.assertTrue(lifecycle.stop())
+
+        killpg.assert_called_once()
+        self.assertEqual(boundary.process.terminate_calls, 0)
+        self.assertIsNone(lifecycle._launched_process_group)
+
+    def test_reused_process_group_is_not_signaled(self):
+        """Catches a stale launcher PID targeting a different process group."""
+        boundary = StopBoundary(kill_result='term')
+        lifecycle = self.lifecycle(boundary)
+        lifecycle._launched_process_group = boundary.process.pid
+
+        with patch(
+            'module.device.platform.platform_linux.os.getpgid',
+            return_value=boundary.process.pid + 1,
+        ), patch('module.device.platform.platform_linux.os.killpg') as killpg:
+            self.assertTrue(lifecycle.stop())
+
+        killpg.assert_not_called()
+        self.assertEqual(boundary.process.terminate_calls, 1)
+
+    def test_unenumerated_launched_process_is_still_stopped_by_its_group(self):
+        """Catches startup cleanup treating an unenumerated Popen as stopped."""
+        boundary = StopBoundary(kill_result='none')
+        boundary.running = False
+        boundary.serial_online = False
+        lifecycle = self.lifecycle(boundary)
+        launched = SimpleNamespace(pid=4321)
+        launched.running = True
+        launched.poll = lambda: None if launched.running else 0
+        lifecycle._launched_process = launched
+        lifecycle._launched_process_group = launched.pid
+
+        def kill_group(process_group, signum):
+            self.assertEqual(process_group, launched.pid)
+            self.assertEqual(signum, signal.SIGTERM)
+            launched.running = False
+
+        with patch(
+            'module.device.platform.platform_linux.os.getpgid',
+            return_value=launched.pid,
+        ), patch(
+            'module.device.platform.platform_linux.os.killpg',
+            side_effect=kill_group,
+        ) as killpg:
+            self.assertTrue(lifecycle.stop())
+
+        killpg.assert_called_once()
+        self.assertIsNone(lifecycle._launched_process)
+
+    def test_process_matcher_rejects_non_emulator_commands_with_the_same_flags(self):
+        """Catches fallback signals targeting an unrelated command line."""
+        boundary = StopBoundary()
+        boundary.unrelated.info['cmdline'] = [
+            '/usr/bin/python3',
+            'worker.py',
+            '-avd',
+            'src-cloud',
+            '-port',
+            '5554',
+        ]
+        lifecycle = self.lifecycle(boundary)
+
+        self.assertEqual(lifecycle.matching_processes(), [boundary.process])
+
 
 class PlatformLinuxTest(unittest.TestCase):
     def test_linux_platform_selector_exposes_platform_linux(self):
@@ -438,6 +531,29 @@ class PlatformLinuxTest(unittest.TestCase):
                 PlatformLinux(LinuxAVDSettingsTest.config())
 
         self.assertEqual(events, ['avd-ready', 'avd-stopped'])
+
+    def test_connection_failure_retains_management_when_shutdown_fails(self):
+        """Catches Device cleanup losing the controller after an unsuccessful stop."""
+        lifecycle = SimpleNamespace(
+            settings=SimpleNamespace(enabled=True),
+            start=lambda: True,
+            stop=lambda: False,
+        )
+        platform = object.__new__(PlatformLinux)
+
+        with patch(
+            'module.device.platform.platform_linux.LinuxAVDLifecycle',
+            return_value=lifecycle,
+        ), patch.object(
+            PlatformBase,
+            '__init__',
+            autospec=True,
+            side_effect=RuntimeError('connection failed'),
+        ):
+            with self.assertRaisesRegex(RuntimeError, 'connection failed'):
+                platform.__init__(LinuxAVDSettingsTest.config())
+
+        self.assertTrue(platform.linux_avd_managed)
 
 
 if __name__ == '__main__':

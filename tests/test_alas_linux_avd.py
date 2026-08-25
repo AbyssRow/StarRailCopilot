@@ -2,11 +2,12 @@ import unittest
 import signal
 from datetime import datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from module.alas import AzurLaneAutoScript
 from module.device.device import Device
 from module.device.platform.platform_linux import PlatformLinux
+from module.exception import RequestHumanTakeover
 from module.webui.process_manager import ProcessManager
 
 
@@ -45,9 +46,11 @@ class NoDeviceWhileIdleScript(AzurLaneAutoScript):
 
 
 class FakeDevice:
-    def __init__(self, events):
+    def __init__(self, events, linux_avd_managed=True, stop_result=True):
         self.events = events
         self.screenshot_tracking = []
+        self.linux_avd_managed = linux_avd_managed
+        self.stop_result = stop_result
 
     def screenshot(self):
         self.events.append('screenshot')
@@ -57,7 +60,7 @@ class FakeDevice:
 
     def emulator_stop(self):
         self.events.append('stop-emulator')
-        return True
+        return self.stop_result
 
 
 class CachedDeviceScript(AzurLaneAutoScript):
@@ -118,6 +121,77 @@ class SchedulerIdleTest(unittest.TestCase):
         )
         self.assertIsNone(script._get_existing_device())
 
+    def test_non_linux_close_emulator_keeps_the_upstream_device_path(self):
+        """Catches Linux lazy-device behavior leaking into other platforms."""
+        future = SimpleNamespace(
+            command='Dungeon',
+            next_run=datetime.now() + timedelta(hours=1),
+        )
+        events = []
+        device = FakeDevice(events)
+        script = CachedDeviceScript(SchedulerConfig([future]), device, events)
+
+        with patch('module.alas.IS_LINUX', False), \
+                patch('module.base.resource.release_resources'):
+            with self.assertRaises(StopIteration):
+                script.get_next_task()
+
+        self.assertEqual(
+            events,
+            ['screenshot', 'stop-cloud-game', 'release-device', 'stop-emulator'],
+        )
+        self.assertIs(script._get_existing_device(), device)
+
+    def test_linux_non_avd_device_keeps_the_upstream_device_path(self):
+        """Catches Linux physical/network devices entering AVD cleanup."""
+        future = SimpleNamespace(
+            command='Dungeon',
+            next_run=datetime.now() + timedelta(hours=1),
+        )
+        events = []
+        device = FakeDevice(events, linux_avd_managed=False)
+        script = CachedDeviceScript(SchedulerConfig([future]), device, events)
+
+        with patch('module.base.resource.release_resources'):
+            with self.assertRaises(StopIteration):
+                script.get_next_task()
+
+        self.assertEqual(
+            events,
+            ['screenshot', 'stop-cloud-game', 'release-device', 'stop-emulator'],
+        )
+        self.assertIs(script._get_existing_device(), device)
+
+    def test_non_linux_loop_does_not_run_linux_exit_cleanup(self):
+        """Catches scheduler-finally behavior changing Windows or macOS."""
+        script = AzurLaneAutoScript('test')
+        script._scheduler_loop = Mock(return_value='finished')
+        script._close_emulator_for_wait = Mock(
+            side_effect=AssertionError('Linux cleanup must not run')
+        )
+
+        with patch('module.alas.IS_LINUX', False):
+            self.assertEqual(script.loop(), 'finished')
+
+        script._close_emulator_for_wait.assert_not_called()
+
+    def test_linux_non_avd_loop_does_not_run_avd_exit_cleanup(self):
+        """Catches physical/network devices entering the AVD-only loop wrapper."""
+        events = []
+        script = CachedDeviceScript(
+            SimpleNamespace(EmulatorInfo_Emulator='auto'),
+            FakeDevice(events, linux_avd_managed=False),
+            events,
+        )
+        script._scheduler_loop = Mock(return_value='finished')
+        script._close_emulator_for_wait = Mock(
+            side_effect=AssertionError('AVD cleanup must not run')
+        )
+
+        self.assertEqual(script.loop(), 'finished')
+
+        script._close_emulator_for_wait.assert_not_called()
+
 
 class DeviceInitializationCleanupTest(unittest.TestCase):
     def test_failure_after_avd_start_stops_partially_initialized_device(self):
@@ -140,6 +214,17 @@ class DeviceInitializationCleanupTest(unittest.TestCase):
                 Device(config=config)
 
         self.assertEqual(events, ['stop-emulator'])
+
+    def test_android_avd_is_rejected_before_device_init_on_non_linux(self):
+        """Catches a Linux-only emulator option entering another platform backend."""
+        config = SimpleNamespace(EmulatorInfo_Emulator='AndroidAVD')
+
+        with patch('module.device.device.IS_LINUX', False), \
+                patch.object(Device, '_initialize') as initialize:
+            with self.assertRaises(RequestHumanTakeover):
+                Device(config=config)
+
+        initialize.assert_not_called()
 
 
 class SchedulerExitCleanupTest(unittest.TestCase):
@@ -201,6 +286,43 @@ class SchedulerExitCleanupTest(unittest.TestCase):
             ['screenshot', 'stop-cloud-game', 'release-device', 'stop-emulator'],
         )
 
+    def test_direct_web_task_system_exit_still_cleans_the_avd(self):
+        """Catches Web tool tasks bypassing loop() and its SIGTERM cleanup."""
+        events = []
+
+        class DirectTaskScript(CachedDeviceScript):
+            def daemon(self):
+                events.append('daemon')
+                raise SystemExit(9)
+
+        previous_handler = object()
+        installed = []
+        script = DirectTaskScript(
+            SimpleNamespace(),
+            FakeDevice(events),
+            events,
+        )
+
+        with patch('signal.getsignal', return_value=previous_handler), \
+                patch('signal.signal', side_effect=lambda signum, handler: installed.append(handler)), \
+                patch('module.base.resource.release_resources'):
+            with self.assertRaisesRegex(SystemExit, '9'):
+                script.run_single_task('daemon')
+
+        self.assertIs(installed[-1], previous_handler)
+        self.assertEqual(
+            events,
+            [
+                'screenshot',
+                'daemon',
+                'screenshot',
+                'stop-cloud-game',
+                'release-device',
+                'stop-emulator',
+            ],
+        )
+        self.assertIsNone(script._get_existing_device())
+
     def test_cloud_stop_system_exit_still_stops_avd_then_propagates(self):
         """Catches cloud-stop failure bypassing the lower-level AVD cleanup."""
         events = []
@@ -220,6 +342,47 @@ class SchedulerExitCleanupTest(unittest.TestCase):
             ['screenshot', 'stop-cloud-game', 'release', 'release-device', 'stop-emulator'],
         )
         self.assertIsNone(script._get_existing_device())
+
+    def test_failed_avd_shutdown_is_retained_and_retried_on_scheduler_exit(self):
+        """Catches an AVD stop failure being forgotten before the idle wait."""
+        future = SimpleNamespace(
+            command='Dungeon',
+            next_run=datetime.now() + timedelta(hours=1),
+        )
+        events = []
+        device = FakeDevice(events, stop_result=False)
+        script = CachedDeviceScript(SchedulerConfig([future]), device, events)
+        script.__dict__['checker'] = SimpleNamespace(
+            wait_until_available=lambda: None,
+            is_recovered=lambda: False,
+        )
+
+        with patch('module.base.resource.release_resources'):
+            with self.assertRaises(RequestHumanTakeover):
+                script.loop()
+
+        self.assertIs(script._get_existing_device(), device)
+        self.assertEqual(events.count('stop-emulator'), 2)
+
+    def test_linux_non_avd_direct_task_keeps_upstream_exit_behavior(self):
+        """Catches Web tools stopping a physical/network device after completion."""
+        events = []
+
+        class DirectTaskScript(CachedDeviceScript):
+            def daemon(self):
+                events.append('daemon')
+
+        device = FakeDevice(events, linux_avd_managed=False)
+        script = DirectTaskScript(
+            SimpleNamespace(EmulatorInfo_Emulator='auto'),
+            device,
+            events,
+        )
+
+        self.assertTrue(script.run_single_task('daemon'))
+
+        self.assertEqual(events, ['screenshot', 'daemon'])
+        self.assertIs(script._get_existing_device(), device)
 
 
 class FakeManagedProcess:
@@ -259,12 +422,58 @@ class ProcessManagerCleanupTest(unittest.TestCase):
                 process = FakeManagedProcess(exits_on_terminate)
                 manager._process = process
 
-                manager.stop()
+                with patch(
+                    'module.webui.process_manager.load_config',
+                    return_value=SimpleNamespace(
+                        EmulatorInfo_Emulator='AndroidAVD',
+                        LinuxAVD_StopTimeout=1,
+                    ),
+                ):
+                    manager.stop()
 
                 self.assertEqual(process.terminate_calls, 1)
                 self.assertEqual(len(process.join_timeouts), 1)
                 self.assertGreater(process.join_timeouts[0], 0)
                 self.assertEqual(process.kill_calls, 0 if exits_on_terminate else 1)
+
+    def test_linux_non_avd_manual_stop_keeps_upstream_kill_behavior(self):
+        """Catches AVD SIGTERM grace leaking into other Linux device types."""
+        manager = object.__new__(ProcessManager)
+        manager.config_name = 'test'
+        manager._process_locks = {}
+        manager.thd_log_queue_handler = None
+        manager.renderables = []
+        process = FakeManagedProcess(exits_on_terminate=True)
+        manager._process = process
+
+        with patch(
+            'module.webui.process_manager.load_config',
+            return_value=SimpleNamespace(EmulatorInfo_Emulator='auto'),
+        ):
+            manager.stop()
+
+        self.assertEqual(process.terminate_calls, 0)
+        self.assertEqual(process.join_timeouts, [])
+        self.assertEqual(process.kill_calls, 1)
+
+    def test_linux_manual_stop_grace_covers_configured_avd_shutdown(self):
+        """Catches the parent force-killing cleanup before StopTimeout expires."""
+        manager = object.__new__(ProcessManager)
+        manager.config_name = 'test'
+        manager._process_locks = {}
+        manager.thd_log_queue_handler = None
+        manager.renderables = []
+        process = FakeManagedProcess(exits_on_terminate=True)
+        manager._process = process
+
+        config = SimpleNamespace(
+            EmulatorInfo_Emulator='AndroidAVD',
+            LinuxAVD_StopTimeout=60,
+        )
+        with patch('module.webui.process_manager.load_config', return_value=config):
+            manager.stop()
+
+        self.assertEqual(process.join_timeouts, [85])
 
 
 if __name__ == '__main__':

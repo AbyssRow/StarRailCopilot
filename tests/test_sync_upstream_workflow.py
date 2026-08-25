@@ -41,6 +41,15 @@ class SyncUpstreamWorkflowContractTest(unittest.TestCase):
         self.assertEqual(simulate.get('type'), 'boolean')
         self.assertEqual(simulate.get('default'), 'false')
 
+    def test_verification_compiles_the_application_entrypoint(self):
+        """Catches upstream sync verification omitting src.py."""
+        steps = self.workflow['jobs']['merge-test-push']['steps']
+        verification = next(
+            step for step in steps if step.get('name') == 'Verify Linux AVD patch'
+        )
+
+        self.assertIn('python -m compileall -q module tests src.py', verification['run'])
+
 
 if __name__ == '__main__':
     unittest.main()

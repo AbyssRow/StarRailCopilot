@@ -168,8 +168,33 @@ class AzurLaneAutoScript:
         """Return the cached Device without evaluating the lazy property."""
         return self.__dict__.get('device')
 
+    def _linux_avd_cleanup_required(self):
+        """Check Linux AVD ownership without initializing Device."""
+        if not IS_LINUX:
+            return False
+        device = self._get_existing_device()
+        if device is not None:
+            return bool(getattr(device, 'linux_avd_managed', False))
+        return str(getattr(self.config, 'EmulatorInfo_Emulator', '')).strip() == 'AndroidAVD'
+
+    def _close_emulator_for_wait_legacy(self):
+        """Keep the pre-Linux lifecycle for Windows and other platforms."""
+        from module.base.resource import release_resources
+
+        self.run('stop')
+        release_resources()
+        self.device.release_during_wait()
+        try:
+            self.device.emulator_stop()
+            logger.info('Emulator stopped successfully')
+        except Exception as error:
+            logger.warning(f'Failed to stop emulator: {error}')
+
     def _close_emulator_for_wait(self):
         """Close an existing Device/AVD without creating a new Device."""
+        if not IS_LINUX:
+            return self._close_emulator_for_wait_legacy()
+
         from module.base.resource import release_resources
 
         device = self._get_existing_device()
@@ -177,9 +202,12 @@ class AzurLaneAutoScript:
             release_resources()
             logger.info('Device has not been initialized, emulator stop skipped')
             return True
+        if not getattr(device, 'linux_avd_managed', False):
+            return self._close_emulator_for_wait_legacy()
 
         primary_error = None
         cleanup_ok = True
+        emulator_stopped = False
         try:
             try:
                 if self.run('stop') is False:
@@ -196,16 +224,20 @@ class AzurLaneAutoScript:
             ):
                 try:
                     result = action()
-                    if label == 'emulator stop' and result is False:
-                        logger.warning('Emulator stop reported failure')
-                        cleanup_ok = False
+                    if label == 'emulator stop':
+                        emulator_stopped = result is not False
+                        if not emulator_stopped:
+                            logger.warning('Emulator stop reported failure')
+                            cleanup_ok = False
                 except BaseException as error:
                     logger.warning(f'Failed during {label}: {error}')
                     cleanup_ok = False
                     if primary_error is None:
                         primary_error = error
         finally:
-            del_cached_property(self, 'device')
+            # Keep the lifecycle controller when shutdown failed so it can be retried.
+            if emulator_stopped:
+                del_cached_property(self, 'device')
 
         if primary_error is not None:
             if not isinstance(primary_error, Exception):
@@ -289,16 +321,26 @@ class AzurLaneAutoScript:
                 elif method == 'close_emulator':
                     logger.info('Close emulator during wait')
                     self._close_emulator_for_wait()
+                    device = self._get_existing_device()
+                    if IS_LINUX and getattr(device, 'linux_avd_managed', False):
+                        logger.critical('Linux AVD did not stop; scheduler will exit')
+                        raise RequestHumanTakeover
                     if not self.wait_until(task.next_run):
                         del_cached_property(self, 'config')
+                        if self._get_existing_device() is not None:
+                            del_cached_property(self, 'device')
                         continue
                     if task.command == 'Restart':
                         del_cached_property(self, 'config')
+                        if self._get_existing_device() is not None:
+                            del_cached_property(self, 'device')
                         continue
                     # 重新启动模拟器
                     if task.command != 'Restart':
                         self.config.task_call('Restart')
                         del_cached_property(self, 'config')
+                        if self._get_existing_device() is not None:
+                            del_cached_property(self, 'device')
                         continue
                 else:
                     logger.warning(f'Invalid Optimization_WhenTaskQueueEmpty: {method}, fallback to stay_there')
@@ -316,12 +358,33 @@ class AzurLaneAutoScript:
         logger.set_file_logger(self.config_name)
         logger.info(f'Start scheduler loop: {self.config_name}')
 
+        if not self._linux_avd_cleanup_required():
+            return self._scheduler_loop()
+
         previous_sigterm = None
-        if IS_LINUX and threading.current_thread() is threading.main_thread():
+        if threading.current_thread() is threading.main_thread():
             previous_sigterm = signal.getsignal(signal.SIGTERM)
             signal.signal(signal.SIGTERM, self._handle_sigterm)
         try:
             return self._scheduler_loop()
+        finally:
+            try:
+                self._close_emulator_for_wait()
+            finally:
+                if previous_sigterm is not None:
+                    signal.signal(signal.SIGTERM, previous_sigterm)
+
+    def run_single_task(self, command):
+        """Run a Web UI task with Linux AVD cleanup on every exit path."""
+        if not self._linux_avd_cleanup_required():
+            return self.run(command)
+
+        previous_sigterm = None
+        if threading.current_thread() is threading.main_thread():
+            previous_sigterm = signal.getsignal(signal.SIGTERM)
+            signal.signal(signal.SIGTERM, self._handle_sigterm)
+        try:
+            return self.run(command)
         finally:
             try:
                 self._close_emulator_for_wait()

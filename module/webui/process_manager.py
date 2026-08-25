@@ -1,4 +1,5 @@
 import argparse
+import math
 import os
 import queue
 import threading
@@ -10,7 +11,7 @@ from rich.console import Console, ConsoleRenderable
 
 from module.device.env import IS_LINUX
 from module.logger import logger, set_file_logger, set_func_logger
-from module.webui.fake import get_config_mod, mod_instance
+from module.webui.fake import get_config_mod, load_config, mod_instance
 from module.webui.setting import State
 from module.webui.submodule.utils import get_available_func
 
@@ -64,9 +65,10 @@ class ProcessManager:
 
         with lock:
             if self.alive:
-                if IS_LINUX:
+                grace = self._linux_avd_stop_grace() if IS_LINUX else None
+                if grace is not None:
                     self._process.terminate()
-                    self._process.join(timeout=15)
+                    self._process.join(timeout=grace)
                     if self._process.is_alive():
                         logger.warning(
                             f'[{self.config_name}] did not exit after SIGTERM cleanup grace, force kill'
@@ -84,6 +86,23 @@ class ProcessManager:
                         "Log queue handler thread does not stop within 1 seconds"
                     )
         logger.info(f"[{self.config_name}] exited")
+
+    def _linux_avd_stop_grace(self):
+        """Allow the child to finish its configured AVD shutdown path."""
+        try:
+            config = load_config(self.config_name)
+            if str(getattr(config, 'EmulatorInfo_Emulator', '')).strip() != 'AndroidAVD':
+                return None
+            stop_timeout = float(getattr(config, 'LinuxAVD_StopTimeout', 60))
+            if not math.isfinite(stop_timeout) or stop_timeout <= 0:
+                return 15
+            # LinuxAVDLifecycle spends StopTimeout in graceful shutdown and
+            # bounded fallback windows after TERM and KILL.
+            force_wait = min(max(stop_timeout / 2, 1), 10)
+            return max(15, stop_timeout + (2 * force_wait) + 5)
+        except BaseException as error:
+            logger.warning(f'[{self.config_name}] failed to load Linux AVD stop grace: {error}')
+            return 15
 
     def _thread_log_queue_handler(self) -> None:
         while self.alive:
@@ -167,7 +186,9 @@ class ProcessManager:
             elif func in get_available_func():
                 from src import StarRailCopilot
 
-                StarRailCopilot(config_name=config_name).run(inflection.underscore(func))
+                StarRailCopilot(config_name=config_name).run_single_task(
+                    inflection.underscore(func)
+                )
             else:
                 logger.critical(f"No function matched: {func}")
             logger.info(f"[{config_name}] exited. Reason: Finish\n")

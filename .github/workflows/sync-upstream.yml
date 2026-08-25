@@ -64,7 +64,7 @@ jobs:
       - name: Verify Linux AVD patch
         run: |
           python -m unittest discover -s tests -v
-          python -m compileall -q module tests
+          python -m compileall -q module tests src.py
           python -m module.config.config_updater
           git diff --exit-code
 
