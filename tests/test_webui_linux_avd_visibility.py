@@ -3,7 +3,11 @@ import unittest
 from unittest.mock import Mock, patch
 
 from module.config.utils import filepath_args, read_file
-from module.webui.app import AlasGUI, filter_platform_args
+from module.webui.app import (
+    AlasGUI,
+    filter_linux_queue_empty_options,
+    filter_platform_args,
+)
 
 
 class PlatformArgumentFilterTest(unittest.TestCase):
@@ -34,6 +38,26 @@ class PlatformArgumentFilterTest(unittest.TestCase):
 
 
 class LinuxAVDVisibilityTest(unittest.TestCase):
+    def test_linux_non_avd_hides_close_emulator_choice(self):
+        options = ['stay_there', 'goto_main', 'close_game', 'close_emulator']
+
+        self.assertNotIn(
+            'close_emulator',
+            filter_linux_queue_empty_options(options, 'MEmuPlayer', True),
+        )
+        self.assertIn(
+            'close_emulator',
+            filter_linux_queue_empty_options(options, 'AndroidAVD', True),
+        )
+
+    def test_other_platforms_keep_upstream_queue_options(self):
+        options = ['stay_there', 'goto_main', 'close_game', 'close_emulator']
+
+        self.assertEqual(
+            filter_linux_queue_empty_options(options, 'MEmuPlayer', False),
+            options,
+        )
+
     def test_linux_toggles_group_and_navigator_for_emulator_selection(self):
         """Catches the AVD group remaining visible for another emulator."""
         with patch('module.webui.app.IS_LINUX', True), \
@@ -46,6 +70,8 @@ class LinuxAVDVisibilityTest(unittest.TestCase):
         self.assertIn('.toggle(true)', visible)
         self.assertIn('group_LinuxAVD', visible)
         self.assertIn('navigator_LinuxAVD', visible)
+        self.assertIn('WhenTaskQueueEmpty', hidden)
+        self.assertIn('WhenTaskQueueEmpty', visible)
 
     def test_non_linux_never_runs_linux_visibility_javascript(self):
         """Catches an absent non-Linux group being manipulated by Linux JS."""

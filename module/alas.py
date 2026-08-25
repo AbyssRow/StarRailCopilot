@@ -203,7 +203,32 @@ class AzurLaneAutoScript:
             logger.info('Device has not been initialized, emulator stop skipped')
             return True
         if not getattr(device, 'linux_avd_managed', False):
-            return self._close_emulator_for_wait_legacy()
+            # Linux AVD ownership is explicit.  Other Linux backends may not
+            # implement a reliable emulator_stop() command, so close only the
+            # cloud game and release the Device resources here.
+            primary_error = None
+            try:
+                if self.run('stop') is False:
+                    logger.warning('Cloud game stop reported failure; continue resource cleanup')
+                    cleanup_ok = False
+                else:
+                    cleanup_ok = True
+            except BaseException as error:
+                primary_error = error
+                logger.warning(f'Cloud game stop failed; continue resource cleanup: {error}')
+                cleanup_ok = False
+            try:
+                release_resources()
+                device.release_during_wait()
+            except BaseException as error:
+                if primary_error is None:
+                    primary_error = error
+                logger.warning(f'Failed during non-AVD resource cleanup: {error}')
+                cleanup_ok = False
+            logger.info('Linux non-AVD emulator stop skipped')
+            if primary_error is not None:
+                raise primary_error
+            return cleanup_ok
 
         primary_error = None
         cleanup_ok = True

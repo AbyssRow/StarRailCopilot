@@ -99,6 +99,7 @@ task_handler = TaskHandler()
 ANDROID_AVD = 'AndroidAVD'
 LINUX_AVD_GROUP = 'LinuxAVD'
 LINUX_AVD_EMULATOR_PATH = 'Alas.EmulatorInfo.Emulator'
+QUEUE_EMPTY_PATH = 'Alas.Optimization.WhenTaskQueueEmpty'
 
 
 def filter_platform_args(arguments, is_linux):
@@ -121,6 +122,13 @@ def filter_platform_args(arguments, is_linux):
     if isinstance(options, list):
         options[:] = [option for option in options if option != ANDROID_AVD]
     return filtered
+
+
+def filter_linux_queue_empty_options(options, emulator, is_linux):
+    """Hide the Linux-only emulator shutdown choice for other backends."""
+    if is_linux and emulator != ANDROID_AVD:
+        return [option for option in options if option != 'close_emulator']
+    return options
 
 
 class AlasGUI(Frame):
@@ -372,7 +380,19 @@ class AlasGUI(Frame):
             # Default value
             output_kwargs["value"] = value
             # Options
-            output_kwargs["options"] = options = output_kwargs.pop("option", [])
+            options = output_kwargs.pop("option", [])
+            if f'{task}.{group_name}.{arg_name}' == QUEUE_EMPTY_PATH:
+                emulator = deep_get(
+                    config,
+                    'Alas.EmulatorInfo.Emulator',
+                    default='auto',
+                )
+                options = filter_linux_queue_empty_options(
+                    options,
+                    emulator,
+                    IS_LINUX,
+                )
+            output_kwargs["options"] = options
             # Options label
             options_label = []
             for opt in options:
@@ -440,6 +460,7 @@ class AlasGUI(Frame):
         run_js(f"""
             $("#pywebio-scope-group_{LINUX_AVD_GROUP}").toggle({visible});
             $("#pywebio-scope-navigator_{LINUX_AVD_GROUP}").toggle({visible});
+            $("select[name='Alas_Optimization_WhenTaskQueueEmpty'] option[value='close_emulator']").toggle({visible});
         """)
 
     def set_dashboard(self, arg, arg_dict, config):

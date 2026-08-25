@@ -70,6 +70,25 @@ class ProcessManager:
 
         with lock:
             if self.alive:
+                # A stale or mis-bound Process object must never signal the
+                # Web process that owns this manager registry.  Doing so
+                # enters Uvicorn shutdown, whose global cleanup stops every
+                # scheduler.  Treat it as an already-unavailable worker.
+                process_pid = getattr(self._process, 'pid', None)
+                process_parent_pid = getattr(
+                    self._process,
+                    '_parent_pid',
+                    os.getpid(),
+                )
+                if process_pid == os.getpid() or process_parent_pid != os.getpid():
+                    logger.error(
+                        f'[{self.config_name}] refusing to stop an invalid scheduler '
+                        f'process handle (pid={process_pid}, parent={process_parent_pid})'
+                    )
+                    self.renderables.append(
+                        f"[{self.config_name}] stop skipped: invalid worker ownership\n"
+                    )
+                    return
                 grace = self._linux_avd_stop_grace() if IS_LINUX else None
                 if grace is not None:
                     self._process.terminate()
@@ -161,9 +180,20 @@ class ProcessManager:
         return cls._processes[config_name]
 
     @staticmethod
+    def _isolate_linux_process_group() -> None:
+        """Put a Linux scheduler in its own session before it touches AVDs."""
+        if not IS_LINUX:
+            return
+        try:
+            os.setsid()
+        except OSError as error:
+            logger.warning(f'Failed to isolate scheduler process group: {error}')
+
+    @staticmethod
     def run_process(
         config_name, func: str, q: queue.Queue, e: threading.Event = None
     ) -> None:
+        ProcessManager._isolate_linux_process_group()
         parser = argparse.ArgumentParser()
         parser.add_argument(
             "--electron", action="store_true", help="Runs by electron client."

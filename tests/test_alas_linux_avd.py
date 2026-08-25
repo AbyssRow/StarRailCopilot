@@ -145,7 +145,7 @@ class SchedulerIdleTest(unittest.TestCase):
         self.assertIs(script._get_existing_device(), device)
 
     def test_linux_non_avd_device_keeps_the_upstream_device_path(self):
-        """Catches Linux physical/network devices entering AVD cleanup."""
+        """Catches Linux non-AVD devices entering AVD shutdown."""
         future = SimpleNamespace(
             command='Dungeon',
             next_run=datetime.now() + timedelta(hours=1),
@@ -160,8 +160,25 @@ class SchedulerIdleTest(unittest.TestCase):
 
         self.assertEqual(
             events,
-            ['screenshot', 'stop-cloud-game', 'release-device', 'stop-emulator'],
+            ['screenshot', 'stop-cloud-game', 'release-device'],
         )
+        self.assertIs(script._get_existing_device(), device)
+
+    def test_linux_non_avd_close_emulator_never_calls_emulator_stop(self):
+        """Catches an unsupported Linux backend being asked to stop its emulator."""
+        future = SimpleNamespace(
+            command='Dungeon',
+            next_run=datetime.now() + timedelta(hours=1),
+        )
+        events = []
+        device = FakeDevice(events, linux_avd_managed=False)
+        script = CachedDeviceScript(SchedulerConfig([future]), device, events)
+
+        with patch('module.base.resource.release_resources'):
+            with self.assertRaises(StopIteration):
+                script.get_next_task()
+
+        self.assertEqual(events, ['screenshot', 'stop-cloud-game', 'release-device'])
         self.assertIs(script._get_existing_device(), device)
 
     def test_non_linux_loop_does_not_run_linux_exit_cleanup(self):
