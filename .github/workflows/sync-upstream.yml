@@ -2,11 +2,18 @@ name: Sync upstream into linux-avd
 
 on:
   schedule:
-    - cron: '23 19 * * 1'
+    - cron: '37 */4 * * *'
   workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: Exercise the failure alert without changing the branch
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: sync-upstream-linux-avd
@@ -28,6 +35,12 @@ jobs:
         with:
           python-version: '3.10'
           cache: pip
+
+      - name: Exercise failure alert
+        if: ${{ inputs.simulate_failure }}
+        run: |
+          echo "Intentional failure requested by workflow_dispatch"
+          exit 1
 
       - name: Install lifecycle test dependencies
         run: |
@@ -57,3 +70,79 @@ jobs:
 
       - name: Push verified merge
         run: git push origin HEAD:linux-avd
+
+  notify-failure:
+    needs: merge-test-push
+    if: ${{ always() && github.repository == 'AbyssRow/StarRailCopilot' && needs.merge-test-push.result == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or update upstream sync alert
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ALERT_LABEL: linux-avd-sync
+          ALERT_TITLE: '[linux-avd] Upstream sync failed'
+        run: |
+          gh api --method POST "repos/${REPOSITORY}/labels" \
+            -f name="${ALERT_LABEL}" \
+            -f color='B60205' \
+            -f description='Automatic upstream sync needs attention' \
+            >/dev/null 2>&1 || true
+
+          issue_number="$(gh issue list \
+            --repo "${REPOSITORY}" \
+            --state open \
+            --label "${ALERT_LABEL}" \
+            --json number \
+            --jq '.[0].number // empty')"
+          message="Upstream sync failed. Inspect ${RUN_URL}. The remote linux-avd branch was not changed by the failed run."
+
+          if [ -n "${issue_number}" ]; then
+            gh issue comment "${issue_number}" --repo "${REPOSITORY}" --body "${message}"
+          else
+            gh issue create \
+              --repo "${REPOSITORY}" \
+              --title "${ALERT_TITLE}" \
+              --body "${message}" \
+              --label "${ALERT_LABEL}" \
+              --assignee "${REPOSITORY_OWNER}"
+          fi
+
+  resolve-alert:
+    needs: merge-test-push
+    if: ${{ always() && github.repository == 'AbyssRow/StarRailCopilot' && needs.merge-test-push.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close resolved upstream sync alert
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ALERT_LABEL: linux-avd-sync
+        run: |
+          gh api --method POST "repos/${REPOSITORY}/labels" \
+            -f name="${ALERT_LABEL}" \
+            -f color='B60205' \
+            -f description='Automatic upstream sync needs attention' \
+            >/dev/null 2>&1 || true
+
+          issue_numbers="$(gh issue list \
+            --repo "${REPOSITORY}" \
+            --state open \
+            --label "${ALERT_LABEL}" \
+            --json number \
+            --jq '.[].number')"
+
+          if [ -z "${issue_numbers}" ]; then
+            echo "No open upstream sync alert"
+            exit 0
+          fi
+
+          for issue_number in ${issue_numbers}; do
+            gh issue comment "${issue_number}" \
+              --repo "${REPOSITORY}" \
+              --body "Upstream sync recovered successfully: ${RUN_URL}"
+            gh issue close "${issue_number}" --repo "${REPOSITORY}"
+          done

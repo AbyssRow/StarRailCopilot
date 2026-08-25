@@ -61,9 +61,11 @@ Deploy:
     KeepLocalChanges: false
 ```
 
-Fork 的 `linux-avd` 分支包含每周一运行且可手动触发的 `sync-upstream.yml`。工作流先合并 `LmeSzinc/StarRailCopilot:master`，再运行 Linux AVD 单元测试、编译检查和配置生成一致性检查，全部通过后才推送。冲突或测试失败不会改动远端 `linux-avd`。
+Fork 的 `linux-avd` 分支包含每 4 小时运行一次且可手动触发的 `sync-upstream.yml`。计划任务在 UTC 每个 4 小时的第 37 分钟执行，对应北京时间每天 `00:37`、`04:37`、`08:37`、`12:37`、`16:37`、`20:37`。工作流先合并 `LmeSzinc/StarRailCopilot:master`，再运行 Linux AVD 单元测试、编译检查和配置生成一致性检查，全部通过后才推送。冲突或测试失败不会改动远端 `linux-avd`。
 
-GitHub 只会从默认分支调度定时工作流，因此 Fork 默认分支需要设为 `linux-avd`，并允许 GitHub Actions 对仓库内容执行写操作。
+同步失败时，工作流会创建并指派一个标题为 `[linux-avd] Upstream sync failed`、标签为 `linux-avd-sync` 的 GitHub Issue；后续连续失败只在同一个 Issue 追加运行链接。下一次同步恢复成功后，工作流会追加恢复记录并自动关闭该 Issue。
+
+GitHub 只会从默认分支调度定时工作流，因此 Fork 默认分支需要设为 `linux-avd`，启用 Issues，并允许 GitHub Actions 写入仓库内容和 Issues。面向后续维护者和自动化 agent 的完整交接说明见仓库根目录 `AGENTS.md`。
 
 ## 故障定位
 

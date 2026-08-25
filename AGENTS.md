@@ -1,0 +1,134 @@
+# Linux AVD Fork Maintenance Guide
+
+This repository is the `AbyssRow/StarRailCopilot` fork. Its daily-use branch is
+`linux-avd`; `master` mirrors the upstream project. Preserve the Linux AVD patch
+when updating from `LmeSzinc/StarRailCopilot:master`.
+
+## Non-negotiable behavior
+
+- SRC may stay running while the AVD is off.
+- A future task must not initialize `Device` or start the AVD.
+- A due task starts the configured AVD and polls, in order: exact emulator
+  process, ADB serial, `sys.boot_completed=1`, ADB shell, package manager.
+- All currently due tasks reuse one Device. Before a future task, SRC exits the
+  cloud game, sends `adb emu kill`, and waits for both the serial and exact
+  process to disappear.
+- Startup timeout, partial Device initialization, task exceptions, `SystemExit`,
+  SIGTERM, and GUI manual stop must attempt AVD cleanup.
+- Never infer boot completion with a fixed sleep. Keep monotonic deadlines and
+  polling.
+- Never add `-wipe-data`, a temporary `-data` path, or another option that
+  discards persistent AVD userdata.
+
+## Important files
+
+- `module/device/platform/platform_linux.py`: AVD settings, launch, readiness,
+  shutdown, and Linux platform integration.
+- `module/device/platform/plat.py`: selects `PlatformLinux` on Linux.
+- `module/alas.py`: lazy Device handling, due-task batching, idle shutdown, and
+  scheduler exit cleanup.
+- `module/device/device.py`: cleanup after partial Device initialization.
+- `module/webui/process_manager.py`: Linux SIGTERM grace before SIGKILL.
+- `tests/test_platform_linux.py`: AVD settings/start/stop/platform tests.
+- `tests/test_alas_linux_avd.py`: scheduler, exception, and GUI-stop tests.
+- `tests/test_sync_upstream_workflow.py`: automatic-sync schedule and alert
+  contract.
+- `.github/workflows/sync-upstream.yml`: upstream merge, verification, push, and
+  GitHub Issue alert workflow.
+- `doc/linux-avd.md`: user-facing setup and operating guide.
+
+## This machine
+
+- Repository: `/home/abyssrow/StarRailCopilot`
+- Python: `/home/abyssrow/StarRailCopilot/.venv/bin/python` (3.10)
+- Android SDK: `/home/abyssrow/Android/Sdk`
+- AVD: `src-cloud`
+- AVD data: `/home/abyssrow/.android/avd/src-cloud.avd`
+- Serial: `emulator-5554`
+- Image: Android 11 / API 30 Google APIs x86_64
+- ARM translation: `libndk_translation.so`; the cloud APK is ARM-only.
+- Runtime: KVM, 2 vCPU, 2048 MB guest RAM, `-gpu host`, headless.
+- Screenshot/control: `ADB` and `MaaTouch`. DroidCast is unreliable on this
+  image and must not be selected without a fresh real-device test.
+- Web service: `systemctl --user status starrailcopilot-web`
+- Web unit: `/home/abyssrow/.config/systemd/user/starrailcopilot-web.service`
+
+Local files `config/deploy.yaml` and `config/src.json` are intentionally ignored
+by Git. Never commit them. They may contain account state or a Web password: do
+not read, print, log, copy, or overwrite password values. The Web UI is bound to
+loopback until remote access is deliberately secured. Prefer Tailscale and a
+firewall rule limited to `tailscale0`; do not expose port 22367 directly to the
+public Internet.
+
+The repository pins `av==10.0.0`, which is incompatible with this host's current
+FFmpeg toolchain. Installed dependencies use ADB screenshots, and local
+`InstallDependencies` is disabled so AutoUpdate is not blocked by PyAV. Revisit
+this only after testing dependency installation and screenshots end to end.
+
+## Verification
+
+Before committing or pushing lifecycle changes, run:
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python -m compileall -q module tests src.py
+.venv/bin/python -m module.config.config_updater
+git diff --check
+git status --short
+```
+
+The config generator must leave no unexpected tracked diff. For a real-machine
+check, start from an already stopped AVD, verify all five readiness gates, take
+an ADB screenshot, stop through the SRC cleanup path, and confirm both
+`emulator-5554` and the matching QEMU process disappear. Do not inspect or log
+the user's account screen or credentials.
+
+## Automatic upstream sync and alerts
+
+The Fork default branch is `linux-avd`. The workflow checks upstream every four
+hours at minute 37 and can also be dispatched manually. It merges
+`upstream/master`, runs the unit tests, compile check, and config generator, and
+pushes only after every verification step succeeds.
+
+On failure, the workflow creates one open Issue titled
+`[linux-avd] Upstream sync failed`, labels it `linux-avd-sync`, and assigns it to
+`AbyssRow`. Repeated failures add comments to that Issue. The first later
+successful sync comments with the recovery run and closes the Issue.
+
+To exercise the alert path intentionally:
+
+```bash
+gh workflow run sync-upstream.yml \
+  --repo AbyssRow/StarRailCopilot \
+  --ref linux-avd \
+  -f simulate_failure=true
+```
+
+After confirming the failure Issue, run the workflow normally and verify that
+the recovery job closes it:
+
+```bash
+gh workflow run sync-upstream.yml \
+  --repo AbyssRow/StarRailCopilot \
+  --ref linux-avd \
+  -f simulate_failure=false
+```
+
+If a sync fails, inspect the linked Actions run before editing anything. A merge
+conflict or failed test leaves the remote `linux-avd` branch unchanged. Resolve
+the actual upstream incompatibility locally, run the full verification above,
+then push normally; never force-push or reset away user work without explicit
+approval. A workflow syntax or permission failure may prevent the Issue job
+itself from running, so also inspect the Actions page if scheduled runs vanish.
+
+## Branches and upstream contribution
+
+- `origin`: `https://github.com/AbyssRow/StarRailCopilot.git`
+- `upstream`: `https://github.com/LmeSzinc/StarRailCopilot.git`
+- Daily branch: `linux-avd`
+- Clean upstream PR branch: `upstream-linux-avd`
+- Upstream PR: `https://github.com/LmeSzinc/StarRailCopilot/pull/1045`
+
+Keep Fork-specific workflow and machine guidance out of the upstream PR branch.
+If upstream accepts equivalent functionality, compare it carefully with the
+invariants above before removing the Fork patch.
