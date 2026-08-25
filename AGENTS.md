@@ -64,6 +64,16 @@ when updating from `LmeSzinc/StarRailCopilot:master`.
   task in `src2` uses `04:30` to reduce simultaneous boots on the old CPU.
 - Web service: `systemctl --user status starrailcopilot-web`
 - Web unit: `/home/abyssrow/.config/systemd/user/starrailcopilot-web.service`
+- Local proxy: `clash-verge-service.service` starts at boot and the Mihomo core
+  listens on `127.0.0.1:7897`. This does not depend on the desktop system-proxy
+  toggle being enabled.
+- Codex uses the user-global, untracked `/home/abyssrow/.codex/.env` with HTTP
+  and HTTPS proxy variables set to `http://127.0.0.1:7897`. New Codex processes
+  load this file; an already-running process does not hot-reload it.
+- SRC updates use `GitProxy: http://127.0.0.1:7897` in the ignored
+  `config/deploy.yaml`, plus matching repository-local `http.proxy` and
+  `https.proxy` values in `.git/config`. Keep both: the periodic update check
+  fetches before the updater reapplies `GitProxy`.
 
 Local files `config/deploy.yaml`, `config/src.json`, and `config/src2.json` are
 intentionally ignored by Git. Never commit them. They may contain account state
