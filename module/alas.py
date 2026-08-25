@@ -358,7 +358,7 @@ class AzurLaneAutoScript:
         logger.set_file_logger(self.config_name)
         logger.info(f'Start scheduler loop: {self.config_name}')
 
-        if not self._linux_avd_cleanup_required():
+        if not IS_LINUX:
             return self._scheduler_loop()
 
         previous_sigterm = None
@@ -369,13 +369,22 @@ class AzurLaneAutoScript:
             return self._scheduler_loop()
         finally:
             try:
-                self._close_emulator_for_wait()
+                device = self._get_existing_device()
+                if getattr(device, 'linux_avd_managed', False):
+                    self._close_emulator_for_wait()
             finally:
                 if previous_sigterm is not None:
                     signal.signal(signal.SIGTERM, previous_sigterm)
 
     def run_single_task(self, command):
-        """Run a Web UI task with Linux AVD cleanup on every exit path."""
+        """Run one Web UI task with Linux AVD cleanup on every exit path.
+
+        Args:
+            command (str): Snake-case task method to invoke.
+
+        Returns:
+            bool: Result returned by the task runner.
+        """
         if not self._linux_avd_cleanup_required():
             return self.run(command)
 

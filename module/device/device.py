@@ -71,6 +71,7 @@ class Device(Screenshot, Control, AppControl):
     stuck_timer = Timer(60, count=60).start()
 
     def __init__(self, *args, **kwargs):
+        """Initialize the device and clean up a partially started Linux AVD."""
         config = kwargs.get('config', args[0] if args else None)
         if not IS_LINUX and str(getattr(config, 'EmulatorInfo_Emulator', '')).strip() == 'AndroidAVD':
             logger.critical('AndroidAVD is supported only on Linux')
@@ -81,7 +82,7 @@ class Device(Screenshot, Control, AppControl):
             if IS_LINUX and getattr(self, 'linux_avd_managed', False):
                 try:
                     self.emulator_stop()
-                except Exception as cleanup_error:
+                except BaseException as cleanup_error:
                     logger.warning(f'Failed to clean Linux AVD after Device initialization error: {cleanup_error}')
             raise
 

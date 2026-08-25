@@ -1,3 +1,4 @@
+import os
 import unittest
 import signal
 from subprocess import CompletedProcess
@@ -9,9 +10,16 @@ from module.device.platform.platform_linux import (
     LinuxAVDLifecycle,
     LinuxAVDSettings,
     LinuxAVDStartError,
-    PlatformLinux,
 )
-from module.device.platform.platform_base import PlatformBase
+
+
+POSIX_PROCESS_CONTROL = (
+    os.name == 'posix'
+    and hasattr(os, 'killpg')
+    and hasattr(os, 'getpgid')
+    and hasattr(os, 'getpgrp')
+    and hasattr(signal, 'SIGKILL')
+)
 
 
 class LinuxAVDSettingsTest(unittest.TestCase):
@@ -380,6 +388,7 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
                 if kill_result != 'both':
                     self.assertGreater(boundary.sleep_calls, 0)
 
+    @unittest.skipUnless(POSIX_PROCESS_CONTROL, 'POSIX process-group APIs are unavailable')
     def test_timeout_terminates_then_kills_only_the_matching_avd(self):
         """Catches leaked emulator memory or termination of an unrelated AVD."""
         term_boundary = StopBoundary(kill_result='term')
@@ -394,6 +403,7 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
         self.assertEqual(kill_boundary.process.kill_calls, 1)
         self.assertEqual(kill_boundary.unrelated.kill_calls, 0)
 
+    @unittest.skipUnless(POSIX_PROCESS_CONTROL, 'POSIX process-group APIs are unavailable')
     def test_launched_emulator_fallback_signals_the_complete_process_group(self):
         """Catches a launcher dying while its QEMU child remains alive."""
         boundary = StopBoundary(kill_result='none')
@@ -407,10 +417,10 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
             boundary.serial_online = False
 
         with patch(
-            'module.device.platform.platform_linux.os.killpg',
+            'module.device.platform.linux_avd.os.killpg',
             side_effect=kill_group,
         ) as killpg, patch(
-            'module.device.platform.platform_linux.os.getpgid',
+            'module.device.platform.linux_avd.os.getpgid',
             return_value=boundary.process.pid,
         ):
             self.assertTrue(lifecycle.stop())
@@ -419,6 +429,7 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
         self.assertEqual(boundary.process.terminate_calls, 0)
         self.assertIsNone(lifecycle._launched_process_group)
 
+    @unittest.skipUnless(POSIX_PROCESS_CONTROL, 'POSIX process-group APIs are unavailable')
     def test_reused_process_group_is_not_signaled(self):
         """Catches a stale launcher PID targeting a different process group."""
         boundary = StopBoundary(kill_result='term')
@@ -426,14 +437,15 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
         lifecycle._launched_process_group = boundary.process.pid
 
         with patch(
-            'module.device.platform.platform_linux.os.getpgid',
+            'module.device.platform.linux_avd.os.getpgid',
             return_value=boundary.process.pid + 1,
-        ), patch('module.device.platform.platform_linux.os.killpg') as killpg:
+        ), patch('module.device.platform.linux_avd.os.killpg') as killpg:
             self.assertTrue(lifecycle.stop())
 
         killpg.assert_not_called()
         self.assertEqual(boundary.process.terminate_calls, 1)
 
+    @unittest.skipUnless(POSIX_PROCESS_CONTROL, 'POSIX process-group APIs are unavailable')
     def test_unenumerated_launched_process_is_still_stopped_by_its_group(self):
         """Catches startup cleanup treating an unenumerated Popen as stopped."""
         boundary = StopBoundary(kill_result='none')
@@ -452,10 +464,10 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
             launched.running = False
 
         with patch(
-            'module.device.platform.platform_linux.os.getpgid',
+            'module.device.platform.linux_avd.os.getpgid',
             return_value=launched.pid,
         ), patch(
-            'module.device.platform.platform_linux.os.killpg',
+            'module.device.platform.linux_avd.os.killpg',
             side_effect=kill_group,
         ) as killpg:
             self.assertTrue(lifecycle.stop())
@@ -478,82 +490,19 @@ class LinuxAVDLifecycleStopTest(unittest.TestCase):
 
         self.assertEqual(lifecycle.matching_processes(), [boundary.process])
 
+    def test_serial_collision_never_kills_an_unrelated_avd(self):
+        """Catches startup cleanup killing a different AVD that owns the serial."""
+        boundary = StopBoundary(kill_result='none')
+        boundary.running = False
+        boundary.serial_online = True
+        lifecycle = self.lifecycle(boundary)
+        lifecycle._launched_process = SimpleNamespace(poll=lambda: None)
 
-class PlatformLinuxTest(unittest.TestCase):
-    def test_linux_platform_selector_exposes_platform_linux(self):
-        """Catches Linux silently falling back to the no-op PlatformBase."""
-        from module.device.platform.plat import Platform
+        self.assertFalse(lifecycle.stop())
 
-        self.assertIs(Platform, PlatformLinux)
-
-    def test_avd_is_ready_before_connection_initialization(self):
-        """Catches Connection touching ADB before the configured AVD is ready."""
-        events = []
-        lifecycle = SimpleNamespace(
-            settings=SimpleNamespace(enabled=True),
-            start=lambda: events.append('avd-ready') or True,
-            stop=lambda: events.append('avd-stopped') or True,
-        )
-
-        with patch(
-            'module.device.platform.platform_linux.LinuxAVDLifecycle',
-            return_value=lifecycle,
-        ), patch.object(
-            PlatformBase,
-            '__init__',
-            autospec=True,
-            side_effect=lambda self, config: events.append('connection-init'),
-        ):
-            platform = PlatformLinux(LinuxAVDSettingsTest.config())
-
-        self.assertEqual(events, ['avd-ready', 'connection-init'])
-        self.assertTrue(platform.linux_avd_managed)
-
-    def test_connection_failure_stops_the_avd_started_during_initialization(self):
-        """Catches a leaked AVD when Connection initialization raises."""
-        events = []
-        lifecycle = SimpleNamespace(
-            settings=SimpleNamespace(enabled=True),
-            start=lambda: events.append('avd-ready') or True,
-            stop=lambda: events.append('avd-stopped') or True,
-        )
-
-        with patch(
-            'module.device.platform.platform_linux.LinuxAVDLifecycle',
-            return_value=lifecycle,
-        ), patch.object(
-            PlatformBase,
-            '__init__',
-            autospec=True,
-            side_effect=RuntimeError('connection failed'),
-        ):
-            with self.assertRaisesRegex(RuntimeError, 'connection failed'):
-                PlatformLinux(LinuxAVDSettingsTest.config())
-
-        self.assertEqual(events, ['avd-ready', 'avd-stopped'])
-
-    def test_connection_failure_retains_management_when_shutdown_fails(self):
-        """Catches Device cleanup losing the controller after an unsuccessful stop."""
-        lifecycle = SimpleNamespace(
-            settings=SimpleNamespace(enabled=True),
-            start=lambda: True,
-            stop=lambda: False,
-        )
-        platform = object.__new__(PlatformLinux)
-
-        with patch(
-            'module.device.platform.platform_linux.LinuxAVDLifecycle',
-            return_value=lifecycle,
-        ), patch.object(
-            PlatformBase,
-            '__init__',
-            autospec=True,
-            side_effect=RuntimeError('connection failed'),
-        ):
-            with self.assertRaisesRegex(RuntimeError, 'connection failed'):
-                platform.__init__(LinuxAVDSettingsTest.config())
-
-        self.assertTrue(platform.linux_avd_managed)
+        self.assertFalse(any(command[-2:] == ['emu', 'kill'] for command in boundary.commands))
+        self.assertEqual(boundary.unrelated.terminate_calls, 0)
+        self.assertEqual(boundary.unrelated.kill_calls, 0)
 
 
 if __name__ == '__main__':

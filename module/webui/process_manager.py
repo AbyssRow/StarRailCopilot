@@ -57,6 +57,11 @@ class ProcessManager:
         self.thd_log_queue_handler.start()
 
     def stop(self) -> None:
+        """Stop the worker, allowing Linux AVD cleanup to finish first.
+
+        The configured grace period is used only for Linux Android AVD workers;
+        all other platforms retain the upstream immediate-stop behavior.
+        """
         try:
             lock = self._process_locks[self.config_name]
         except KeyError:
@@ -88,7 +93,11 @@ class ProcessManager:
         logger.info(f"[{self.config_name}] exited")
 
     def _linux_avd_stop_grace(self):
-        """Allow the child to finish its configured AVD shutdown path."""
+        """Calculate the parent grace period for a Linux AVD child.
+
+        Returns:
+            float or None: Grace seconds for an AVD, or None for other devices.
+        """
         try:
             config = load_config(self.config_name)
             if str(getattr(config, 'EmulatorInfo_Emulator', '')).strip() != 'AndroidAVD':
@@ -100,7 +109,7 @@ class ProcessManager:
             # bounded fallback windows after TERM and KILL.
             force_wait = min(max(stop_timeout / 2, 1), 10)
             return max(15, stop_timeout + (2 * force_wait) + 5)
-        except BaseException as error:
+        except Exception as error:
             logger.warning(f'[{self.config_name}] failed to load Linux AVD stop grace: {error}')
             return 15
 

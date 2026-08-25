@@ -52,11 +52,12 @@ class WebProcessSupervisorTest(unittest.TestCase):
         def process_factory(event):
             return Process(events_created)
 
-        supervisor(
-            process_factory=process_factory,
-            event_factory=event_factory,
-            wait_interval=0,
-        )
+        with patch('gui.IS_LINUX', True):
+            supervisor(
+                process_factory=process_factory,
+                event_factory=event_factory,
+                wait_interval=0,
+            )
 
         self.assertEqual(started, [1, 2])
         self.assertEqual(joined, [1, 2])
@@ -118,11 +119,12 @@ class WebProcessSupervisorTest(unittest.TestCase):
                 self.join_calls.append(timeout)
 
         process = Process()
-        gui.supervise_web_process(
-            process_factory=lambda event: process,
-            event_factory=Event,
-            wait_interval=0,
-        )
+        with patch('gui.IS_LINUX', True):
+            gui.supervise_web_process(
+                process_factory=lambda event: process,
+                event_factory=Event,
+                wait_interval=0,
+            )
 
         self.assertEqual(process.terminate_calls, 1)
         self.assertEqual(process.kill_calls, 1)

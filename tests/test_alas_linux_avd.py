@@ -1,5 +1,6 @@
 import unittest
 import signal
+import sys
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -77,6 +78,7 @@ class CachedDeviceScript(AzurLaneAutoScript):
         raise StopIteration
 
 
+@unittest.skipUnless(sys.platform == 'linux', 'Linux AVD lifecycle tests require Linux')
 class SchedulerIdleTest(unittest.TestCase):
     def test_future_task_does_not_initialize_device_or_start_emulator(self):
         """Catches close_emulator evaluating the lazy Device while SRC is idle."""
@@ -192,7 +194,32 @@ class SchedulerIdleTest(unittest.TestCase):
 
         script._close_emulator_for_wait.assert_not_called()
 
+    def test_linux_loop_cleans_avd_enabled_after_scheduler_start(self):
+        """Catches a runtime config switch bypassing the scheduler exit cleanup."""
+        events = []
+        script = CachedDeviceScript(
+            SimpleNamespace(EmulatorInfo_Emulator='auto'),
+            FakeDevice(events, linux_avd_managed=False),
+            events,
+        )
 
+        def scheduler_loop():
+            script.__dict__['device'].linux_avd_managed = True
+            raise RuntimeError('task failed after enabling AVD')
+
+        script._scheduler_loop = scheduler_loop
+        with patch('module.base.resource.release_resources'):
+            with self.assertRaisesRegex(RuntimeError, 'task failed after enabling AVD'):
+                script.loop()
+
+        self.assertEqual(
+            events,
+            ['screenshot', 'stop-cloud-game', 'release-device', 'stop-emulator'],
+        )
+        self.assertIsNone(script._get_existing_device())
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'Linux AVD lifecycle tests require Linux')
 class DeviceInitializationCleanupTest(unittest.TestCase):
     def test_failure_after_avd_start_stops_partially_initialized_device(self):
         """Catches an AVD leak when Device setup fails after Connection succeeds."""
@@ -215,6 +242,20 @@ class DeviceInitializationCleanupTest(unittest.TestCase):
 
         self.assertEqual(events, ['stop-emulator'])
 
+    def test_partial_device_cleanup_preserves_system_exit_from_initialization(self):
+        """Catches cleanup replacing the primary SystemExit with a stop failure."""
+        config = SimpleNamespace()
+
+        def platform_init(device, *args, **kwargs):
+            device.config = kwargs.get('config', args[0] if args else None)
+            device.linux_avd_managed = True
+
+        with patch.object(PlatformLinux, '__init__', autospec=True, side_effect=platform_init), \
+                patch.object(Device, 'screenshot_interval_set', side_effect=SystemExit(11)), \
+                patch.object(Device, 'emulator_stop', side_effect=KeyboardInterrupt()):
+            with self.assertRaisesRegex(SystemExit, '11'):
+                Device(config=config)
+
     def test_android_avd_is_rejected_before_device_init_on_non_linux(self):
         """Catches a Linux-only emulator option entering another platform backend."""
         config = SimpleNamespace(EmulatorInfo_Emulator='AndroidAVD')
@@ -227,6 +268,7 @@ class DeviceInitializationCleanupTest(unittest.TestCase):
         initialize.assert_not_called()
 
 
+@unittest.skipUnless(sys.platform == 'linux', 'Linux AVD lifecycle tests require Linux')
 class SchedulerExitCleanupTest(unittest.TestCase):
     def test_exception_and_system_exit_cleanup_cached_avd_once(self):
         """Catches recoverable SRC exits bypassing cloud and emulator cleanup."""
@@ -409,6 +451,7 @@ class FakeManagedProcess:
         self.running = False
 
 
+@unittest.skipUnless(sys.platform == 'linux', 'Linux AVD lifecycle tests require Linux')
 class ProcessManagerCleanupTest(unittest.TestCase):
     def test_linux_manual_stop_uses_sigterm_grace_before_sigkill(self):
         """Catches manual stop using uncatchable SIGKILL before AVD cleanup."""

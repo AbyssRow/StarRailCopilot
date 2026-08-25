@@ -91,6 +91,13 @@ def supervise_web_process(
         event_factory=Event,
         wait_interval=1,
 ):
+    """Keep the Linux Web child alive after an unexpected worker exit.
+
+    Args:
+        process_factory: Optional callable creating a child process.
+        event_factory: Optional callable creating the reload event.
+        wait_interval (float): Seconds between child state checks.
+    """
     if process_factory is None:
         process_factory = lambda event: Process(target=func, args=(event,))
 
@@ -125,7 +132,12 @@ def supervise_web_process(
 
 
 def _stop_web_process(process, grace=None):
-    """Stop a Web child without leaving it behind on parent shutdown."""
+    """Stop a Web child without leaving it behind on parent shutdown.
+
+    Args:
+        process: Multiprocessing child process to terminate.
+        grace (float): Seconds to wait for graceful cleanup before killing it.
+    """
     if grace is None:
         grace = 90 if IS_LINUX else 5
     try:
