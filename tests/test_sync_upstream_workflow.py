@@ -53,12 +53,21 @@ class SyncUpstreamWorkflowContractTest(unittest.TestCase):
     def test_install_step_uses_complete_locked_dependencies(self):
         """Catches CI drifting from the repository's complete dependency lock."""
         steps = self.workflow['jobs']['merge-test-push']['steps']
+        merge_index = next(
+            index for index, step in enumerate(steps)
+            if step.get('name') == 'Merge upstream master'
+        )
+        install_index = next(
+            index for index, step in enumerate(steps)
+            if step.get('name') == 'Install lifecycle test dependencies'
+        )
         install = next(
             step for step in steps if step.get('name') == 'Install lifecycle test dependencies'
         )
 
+        self.assertLess(merge_index, install_index)
         self.assertIn("sed '/^av==/d' requirements-in.txt", install['run'])
-        self.assertIn("sed '/^av==/d' requirements.txt", install['run'])
+        self.assertIn("sed -e '/^av==/d' -e 's/^uvicorn\\[standard\\]/uvicorn/'", install['run'])
         self.assertIn('--requirement "$RUNNER_TEMP/requirements-ci.in"', install['run'])
         self.assertIn('--constraint "$RUNNER_TEMP/requirements-ci.txt"', install['run'])
         self.assertIn('python -m pip check', install['run'])
