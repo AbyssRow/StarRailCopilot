@@ -8,6 +8,23 @@ from module.webui.process_manager import ProcessManager
 
 
 class ProcessManagerExceptionBoundaryTest(unittest.TestCase):
+    def test_scheduler_uses_clean_spawn_context(self):
+        """Catches forking a scheduler from the multithreaded Web child."""
+        manager = object.__new__(ProcessManager)
+        manager.config_name = 'test'
+        manager._renderable_queue = object()
+        manager._process = None
+        manager.start_log_queue_handler = lambda: None
+
+        process = SimpleNamespace(start=lambda: None)
+        context = SimpleNamespace(Process=lambda **kwargs: process)
+        with patch('module.webui.process_manager.get_context', return_value=context) as get_context, \
+                patch('module.webui.process_manager.get_config_mod', return_value='alas'):
+            manager.start(func=None)
+
+        get_context.assert_called_once_with('spawn')
+        self.assertIs(manager._process, process)
+
     @unittest.skipUnless(sys.platform == 'linux', 'Linux process-group API test')
     def test_linux_scheduler_isolates_its_process_group(self):
         with patch('module.webui.process_manager.IS_LINUX', True), \

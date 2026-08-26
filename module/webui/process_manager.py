@@ -3,7 +3,7 @@ import math
 import os
 import queue
 import threading
-from multiprocessing import Process
+from multiprocessing import Process, get_context
 from typing import Dict, List, Union
 
 import inflection
@@ -33,7 +33,13 @@ class ProcessManager:
         if not self.alive:
             if func is None:
                 func = get_config_mod(self.config_name)
-            self._process = Process(
+            # The Web worker is already running Uvicorn and its event loop in
+            # multiple threads.  Forking a scheduler from that process copies
+            # Uvicorn's signal state and inherited descriptors; a scheduler
+            # SIGTERM can then make the Web child enter its own shutdown path.
+            # Spawn gives each scheduler a clean interpreter and signal table.
+            process_factory = get_context("spawn").Process
+            self._process = process_factory(
                 target=ProcessManager.run_process,
                 args=(
                     self.config_name,

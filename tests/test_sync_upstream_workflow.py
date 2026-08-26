@@ -50,6 +50,15 @@ class SyncUpstreamWorkflowContractTest(unittest.TestCase):
 
         self.assertIn('python -m compileall -q module tests src.py', verification['run'])
 
+    def test_install_step_includes_webui_runtime_dependency(self):
+        """Catches Web UI tests failing before verification due to missing uvicorn."""
+        steps = self.workflow['jobs']['merge-test-push']['steps']
+        install = next(
+            step for step in steps if step.get('name') == 'Install lifecycle test dependencies'
+        )
+
+        self.assertIn('uvicorn[standard]==0.17.6', install['run'])
+
 
 if __name__ == '__main__':
     unittest.main()
