@@ -1472,14 +1472,6 @@
         "display": "hide",
         "stored": "StoredEchoOfWar"
       },
-      "SimulatedUniverse": {
-        "type": "stored",
-        "value": {},
-        "display": "hide",
-        "stored": "StoredSimulatedUniverse",
-        "order": 6,
-        "color": "#8fb5fe"
-      },
       "Relic": {
         "type": "stored",
         "value": {},
@@ -2076,7 +2068,7 @@
         "value": {},
         "display": "display",
         "stored": "StoredInt",
-        "order": 7,
+        "order": 6,
         "color": "#ab7cf2"
       },
       "StallerJade": {
@@ -2084,8 +2076,16 @@
         "value": {},
         "display": "display",
         "stored": "StoredInt",
-        "order": 8,
+        "order": 7,
         "color": "#fc8f8b"
+      },
+      "SpecialPass": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredInt",
+        "order": 8,
+        "color": "#ffd700"
       }
     },
     "CloudStorage": {
@@ -2431,6 +2431,15 @@
         "value": "",
         "keepvalue": true,
         "display": "hide"
+      }
+    },
+    "RogueStorage": {
+      "SimulatedUniverse": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredSimulatedUniverse",
+        "color": "#8fb5fe"
       }
     },
     "RogueBlessing": {

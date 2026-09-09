@@ -574,10 +574,6 @@
       "name": "历战余响",
       "help": ""
     },
-    "SimulatedUniverse": {
-      "name": "模拟宇宙",
-      "help": ""
-    },
     "Relic": {
       "name": "遗器",
       "help": ""
@@ -1573,6 +1569,10 @@
     "StallerJade": {
       "name": "星琼",
       "help": ""
+    },
+    "SpecialPass": {
+      "name": "星轨专票",
+      "help": ""
     }
   },
   "CloudStorage": {
@@ -1709,6 +1709,16 @@
     "DebugMode": {
       "name": "开发模式",
       "help": "无停止条件，无异常处理，遇错误即停止，请按文档上报异常：https://github.com/LmeSzinc/StarRailCopilot/wiki/RogueMap_cn"
+    }
+  },
+  "RogueStorage": {
+    "_info": {
+      "name": "模拟宇宙记录",
+      "help": ""
+    },
+    "SimulatedUniverse": {
+      "name": "模拟宇宙",
+      "help": ""
     }
   },
   "Ornament": {
