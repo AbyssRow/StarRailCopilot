@@ -574,10 +574,6 @@
       "name": "Echo.",
       "help": ""
     },
-    "SimulatedUniverse": {
-      "name": "Sim.Univ.",
-      "help": ""
-    },
     "Relic": {
       "name": "Relics",
       "help": ""
@@ -1713,6 +1709,16 @@
     "DebugMode": {
       "name": "Dev Mode",
       "help": "No stop conditions, no error handling, stop when encountering an error. Please report errors according to the doc: https://github.com/LmeSzinc/StarRailCopilot/wiki/RogueMap_cn"
+    }
+  },
+  "RogueStorage": {
+    "_info": {
+      "name": "Simulated Universe Records",
+      "help": ""
+    },
+    "SimulatedUniverse": {
+      "name": "Sim.Univ.",
+      "help": ""
     }
   },
   "Ornament": {

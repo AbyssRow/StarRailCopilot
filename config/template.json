@@ -155,7 +155,6 @@
       "Immersifier": {},
       "DungeonDouble": {},
       "EchoOfWar": {},
-      "SimulatedUniverse": {},
       "Relic": {}
     },
     "TrailblazePower": {
@@ -308,6 +307,9 @@
       "UseStamina": false,
       "SimulatedUniverseFarm": {},
       "Team": null
+    },
+    "RogueStorage": {
+      "SimulatedUniverse": {}
     },
     "RogueBlessing": {
       "PresetBlessingFilter": "preset",

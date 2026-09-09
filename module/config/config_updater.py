@@ -777,12 +777,14 @@ class ConfigUpdater:
         # ('Dungeon.Planner.Item_Moon_Madness_Fang', 'Dungeon.Planner.Item_Moon_Rage_Fang',
         #  convert_Item_Moon_Madness_Fang),
         # 3.1
-        ('Dungeon.Dungeon.Name', 'Dungeon.Dungeon.Name', convert_31_dungeon),
-        ('Dungeon.Dungeon.NameAtDoubleCalyx', 'Dungeon.Dungeon.NameAtDoubleCalyx', convert_31_dungeon),
-        ('Dungeon.DungeonDaily.CalyxGolden', 'Dungeon.DungeonDaily.CalyxGolden', convert_31_dungeon),
-        ('Dungeon.DungeonDaily.CalyxCrimson', 'Dungeon.DungeonDaily.CalyxCrimson', convert_31_dungeon),
+        # ('Dungeon.Dungeon.Name', 'Dungeon.Dungeon.Name', convert_31_dungeon),
+        # ('Dungeon.Dungeon.NameAtDoubleCalyx', 'Dungeon.Dungeon.NameAtDoubleCalyx', convert_31_dungeon),
+        # ('Dungeon.DungeonDaily.CalyxGolden', 'Dungeon.DungeonDaily.CalyxGolden', convert_31_dungeon),
+        # ('Dungeon.DungeonDaily.CalyxCrimson', 'Dungeon.DungeonDaily.CalyxCrimson', convert_31_dungeon),
         # 3.2
-        ('Weekly.Weekly.Name', 'Weekly.Weekly.Name', convert_32_weekly),
+        # ('Weekly.Weekly.Name', 'Weekly.Weekly.Name', convert_32_weekly),
+        # 4.5
+        ('Dungeon.DungeonStorage.SimulatedUniverse', 'Rogue.RogueStorage.SimulatedUniverse'),
     ]
 
     @cached_property

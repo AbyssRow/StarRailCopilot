@@ -65,6 +65,7 @@ Weekly:
     Rogue:
       - Scheduler
       - RogueWorld
+      - RogueStorage
       - RogueBlessing
       - RogueDebug
 

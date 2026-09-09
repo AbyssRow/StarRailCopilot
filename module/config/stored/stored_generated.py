@@ -116,7 +116,6 @@ class StoredGenerated:
     Immersifier = StoredImmersifier("Dungeon.DungeonStorage.Immersifier")
     DungeonDouble = StoredDungeonDouble("Dungeon.DungeonStorage.DungeonDouble")
     EchoOfWar = StoredEchoOfWar("Dungeon.DungeonStorage.EchoOfWar")
-    SimulatedUniverse = StoredSimulatedUniverse("Dungeon.DungeonStorage.SimulatedUniverse")
     Relic = StoredRelic("Dungeon.DungeonStorage.Relic")
     DailyActivity = StoredDailyActivity("DailyQuest.DailyStorage.DailyActivity")
     DailyQuest = StoredDaily("DailyQuest.DailyStorage.DailyQuest")
@@ -138,3 +137,4 @@ class StoredGenerated:
     CloudRemainPaid = StoredInt("DataUpdate.CloudStorage.CloudRemainPaid")
     CloudRemainFree = StoredInt("DataUpdate.CloudStorage.CloudRemainFree")
     SimulatedUniverseFarm = StoredSimulatedUniverseElite("Rogue.RogueWorld.SimulatedUniverseFarm")
+    SimulatedUniverse = StoredSimulatedUniverse("Rogue.RogueStorage.SimulatedUniverse")
