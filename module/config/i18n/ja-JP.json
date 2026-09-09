@@ -613,10 +613,6 @@
       "name": "DungeonStorage.EchoOfWar.name",
       "help": "DungeonStorage.EchoOfWar.help"
     },
-    "SimulatedUniverse": {
-      "name": "DungeonStorage.SimulatedUniverse.name",
-      "help": "DungeonStorage.SimulatedUniverse.help"
-    },
     "Relic": {
       "name": "DungeonStorage.Relic.name",
       "help": "DungeonStorage.Relic.help"
@@ -1612,6 +1608,10 @@
     "StallerJade": {
       "name": "ItemStorage.StallerJade.name",
       "help": "ItemStorage.StallerJade.help"
+    },
+    "SpecialPass": {
+      "name": "星軌専用チケット",
+      "help": ""
     }
   },
   "CloudStorage": {
@@ -1748,6 +1748,16 @@
     "DebugMode": {
       "name": "RogueDebug.DebugMode.name",
       "help": "RogueDebug.DebugMode.help"
+    }
+  },
+  "RogueStorage": {
+    "_info": {
+      "name": "模擬宇宙記録",
+      "help": ""
+    },
+    "SimulatedUniverse": {
+      "name": "模擬宇宙",
+      "help": ""
     }
   },
   "Ornament": {

@@ -164,7 +164,6 @@
       "Immersifier": {},
       "DungeonDouble": {},
       "EchoOfWar": {},
-      "SimulatedUniverse": {},
       "Relic": {}
     },
     "TrailblazePower": {
@@ -259,7 +258,8 @@
     },
     "ItemStorage": {
       "Credit": {},
-      "StallerJade": {}
+      "StallerJade": {},
+      "SpecialPass": {}
     },
     "CloudStorage": {
       "CloudRemainSeasonPass": {},
@@ -316,6 +316,9 @@
       "UseStamina": false,
       "SimulatedUniverseFarm": {},
       "Team": null
+    },
+    "RogueStorage": {
+      "SimulatedUniverse": {}
     },
     "RogueBlessing": {
       "PresetBlessingFilter": "preset",

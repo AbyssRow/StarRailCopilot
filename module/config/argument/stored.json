@@ -64,19 +64,6 @@
     "order": 5,
     "color": "#cbe45b"
   },
-  "SimulatedUniverse": {
-    "name": "SimulatedUniverse",
-    "path": "Dungeon.DungeonStorage.SimulatedUniverse",
-    "i18n": "DungeonStorage.SimulatedUniverse.name",
-    "stored": "StoredSimulatedUniverse",
-    "attrs": {
-      "time": "2020-01-01 00:00:00",
-      "total": 0,
-      "value": 0
-    },
-    "order": 6,
-    "color": "#8fb5fe"
-  },
   "Credit": {
     "name": "Credit",
     "path": "DataUpdate.ItemStorage.Credit",
@@ -86,7 +73,7 @@
       "time": "2020-01-01 00:00:00",
       "value": 0
     },
-    "order": 7,
+    "order": 6,
     "color": "#ab7cf2"
   },
   "StallerJade": {
@@ -98,8 +85,20 @@
       "time": "2020-01-01 00:00:00",
       "value": 0
     },
-    "order": 8,
+    "order": 7,
     "color": "#fc8f8b"
+  },
+  "SpecialPass": {
+    "name": "SpecialPass",
+    "path": "DataUpdate.ItemStorage.SpecialPass",
+    "i18n": "ItemStorage.SpecialPass.name",
+    "stored": "StoredInt",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "value": 0
+    },
+    "order": 8,
+    "color": "#ffd700"
   },
   "Item_Credit": {
     "name": "Item_Credit",
@@ -1197,5 +1196,18 @@
     },
     "order": 0,
     "color": "#777777"
+  },
+  "SimulatedUniverse": {
+    "name": "SimulatedUniverse",
+    "path": "Rogue.RogueStorage.SimulatedUniverse",
+    "i18n": "RogueStorage.SimulatedUniverse.name",
+    "stored": "StoredSimulatedUniverse",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 0,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#8fb5fe"
   }
 }

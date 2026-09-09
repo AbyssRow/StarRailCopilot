@@ -74,7 +74,6 @@ class GeneratedConfig:
     DungeonStorage_Immersifier = {}
     DungeonStorage_DungeonDouble = {}
     DungeonStorage_EchoOfWar = {}
-    DungeonStorage_SimulatedUniverse = {}
     DungeonStorage_Relic = {}
 
     # Group `Freebies`
@@ -211,6 +210,7 @@ class GeneratedConfig:
     # Group `ItemStorage`
     ItemStorage_Credit = {}
     ItemStorage_StallerJade = {}
+    ItemStorage_SpecialPass = {}
 
     # Group `CloudStorage`
     CloudStorage_CloudRemainSeasonPass = {}
@@ -240,6 +240,9 @@ class GeneratedConfig:
 
     # Group `RogueDebug`
     RogueDebug_DebugMode = False
+
+    # Group `RogueStorage`
+    RogueStorage_SimulatedUniverse = {}
 
     # Group `Ornament`
     Ornament_Dungeon = 'Divergent_Universe_Eternal_Comedy'  # Divergent_Universe_Bugs_Incoming, Divergent_Universe_Gilded_Recollection, Divergent_Universe_Within_the_West_Wind, Divergent_Universe_Moonlit_Blood, Divergent_Universe_Unceasing_Strife, Divergent_Universe_Famished_Worker, Divergent_Universe_Eternal_Comedy, Divergent_Universe_To_Sweet_Dreams, Divergent_Universe_Pouring_Blades, Divergent_Universe_Fruit_of_Evil, Divergent_Universe_Permafrost, Divergent_Universe_Gentle_Words, Divergent_Universe_Smelted_Heart, Divergent_Universe_Untoppled_Walls

@@ -613,10 +613,6 @@
       "name": "Ecos.",
       "help": ""
     },
-    "SimulatedUniverse": {
-      "name": "Univ.Sim.",
-      "help": ""
-    },
     "Relic": {
       "name": "Artefacto",
       "help": ""
@@ -1612,6 +1608,10 @@
     "StallerJade": {
       "name": "Jade",
       "help": ""
+    },
+    "SpecialPass": {
+      "name": "Special Pass",
+      "help": ""
     }
   },
   "CloudStorage": {
@@ -1748,6 +1748,16 @@
     "DebugMode": {
       "name": "Modo de desarrollo",
       "help": "Sin condiciones de parada, sin manejo de errores, deténgase cuando encuentre un error. Informe el error de acuerdo con el documento: https://github.com/LmeSzinc/StarRailCopilot/wiki/RogueMap_cn"
+    }
+  },
+  "RogueStorage": {
+    "_info": {
+      "name": "Registros del Universo Simulado",
+      "help": ""
+    },
+    "SimulatedUniverse": {
+      "name": "Univ.Sim.",
+      "help": ""
     }
   },
   "Ornament": {

@@ -613,10 +613,6 @@
       "name": "Echo.",
       "help": ""
     },
-    "SimulatedUniverse": {
-      "name": "Sim.Univ.",
-      "help": ""
-    },
     "Relic": {
       "name": "Relics",
       "help": ""
@@ -1612,6 +1608,10 @@
     "StallerJade": {
       "name": "Jade",
       "help": ""
+    },
+    "SpecialPass": {
+      "name": "Special Pass",
+      "help": ""
     }
   },
   "CloudStorage": {
@@ -1748,6 +1748,16 @@
     "DebugMode": {
       "name": "Dev Mode",
       "help": "No stop conditions, no error handling, stop when encountering an error. Please report errors according to the doc: https://github.com/LmeSzinc/StarRailCopilot/wiki/RogueMap_cn"
+    }
+  },
+  "RogueStorage": {
+    "_info": {
+      "name": "Simulated Universe Records",
+      "help": ""
+    },
+    "SimulatedUniverse": {
+      "name": "Sim.Univ.",
+      "help": ""
     }
   },
   "Ornament": {

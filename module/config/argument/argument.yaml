@@ -152,10 +152,6 @@ DungeonStorage:
     stored: StoredDungeonDouble
   EchoOfWar:
     stored: StoredEchoOfWar
-  SimulatedUniverse:
-    stored: StoredSimulatedUniverse
-    order: 6
-    color: "#8fb5fe"
   Relic:
     stored: StoredRelic
     order: 3
@@ -335,13 +331,18 @@ Assignment:
 ItemStorage:
   Credit:
     stored: StoredInt
-    order: 7
+    order: 6
     color: "#ab7cf2"
     display: display
   StallerJade:
     stored: StoredInt
-    order: 8
+    order: 7
     color: "#fc8f8b"
+    display: display
+  SpecialPass:
+    stored: StoredInt
+    order: 8
+    color: "#ffd700"
     display: display
 
 CloudStorage:
@@ -421,6 +422,12 @@ RogueBlessing:
 
 RogueDebug:
   DebugMode: false
+
+RogueStorage:
+  SimulatedUniverse:
+    stored: StoredSimulatedUniverse
+    color: "#8fb5fe"
+    display: display
 
 Ornament:
   Dungeon:
