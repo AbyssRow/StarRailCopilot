@@ -82,9 +82,13 @@ class DataUpdate(ItemUI, PlannerMixin):
         for _ in self.loop():
             data = ocr.detect_and_ocr(self.device.image)
             if len(data) == 1:
-                special_pass = int(re.sub(r'\s', '', data[0].ocr_text))
-                if special_pass > 0:
-                    break
+                text = re.sub(r'\s', '', data[0].ocr_text)
+                try:
+                    special_pass = int(text)
+                    if special_pass >= 0:
+                        break
+                except ValueError:
+                    pass
 
             logger.warning(f'Invalid special pass: {data}')
             if timeout.reached():
