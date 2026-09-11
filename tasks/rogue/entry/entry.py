@@ -1,11 +1,10 @@
 import re
 from datetime import datetime, timedelta
 
-import cv2
 import numpy as np
 
 from module.base.timer import Timer
-from module.base.utils import color_similarity_2d
+from module.base.utils import color_mask
 from module.exception import RequestHumanTakeover, ScriptError
 from module.logger import logger
 from module.ocr.ocr import Ocr
@@ -63,8 +62,7 @@ class OcrRogueWorld(Ocr):
     def pre_process(self, image):
         # Letter randomly moving up and down
         # Crop to the up/down border of the white letter
-        center = color_similarity_2d(image, color=(255, 255, 255))
-        cv2.inRange(center, 180, 255, dst=center)
+        center = color_mask(image, color=(255, 255, 255), threshold=75)
         # print(np.count_nonzero(center, axis=1))
         # World 8
         # [ 0  0  0  0  0  0  0  2 23 24 22 21 23 29 44 47 38 37 31 32 33 33 31 34
