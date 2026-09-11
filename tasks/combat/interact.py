@@ -34,7 +34,7 @@ class CombatInteract(UI):
 
             if self.appear(COMBAT_PREPARE):
                 # Confirm page loaded
-                if self.image_color_count(COMBAT_PREPARE.button, color=(230, 230, 230), threshold=240, count=400):
+                if self.image_color_count(COMBAT_PREPARE.button, color=(230, 230, 230), threshold=15, count=400):
                     logger.info(f'At {COMBAT_PREPARE}')
                     break
             # is_page_rogue_main()

@@ -104,11 +104,11 @@ class MailReward(UI):
         """
         # wait mail red dot because it might still in transparent
         for _ in self.loop(timeout=1):
-            if self.image_color_count(MAIL_RED_DOT, color=(202, 24, 48), count=30, threshold=221):
+            if self.image_color_count(MAIL_RED_DOT, color=(202, 24, 48), count=30, threshold=30):
                 logger.attr('MailRedDot', True)
                 return True
             # lighter red color when still in blur after closing support reward
-            if self.image_color_count(MAIL_RED_DOT, color=(171, 44, 44), count=30, threshold=221):
+            if self.image_color_count(MAIL_RED_DOT, color=(171, 44, 44), count=30, threshold=30):
                 logger.attr('MailRedDot', True)
                 return True
         logger.attr('MailRedDot', False)

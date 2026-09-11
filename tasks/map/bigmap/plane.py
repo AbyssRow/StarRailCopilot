@@ -44,7 +44,7 @@ class DraggablePlaneList(DraggableList):
         # Items have an animation to be selected, check if the rightmost become black.
         x = OCR_PLANE.area[2]
         area = (x - 20, button.area[1], x, button.area[3])
-        if main.image_color_count(area, color=(40, 40, 40), threshold=221, count=100):
+        if main.image_color_count(area, color=(40, 40, 40), threshold=30, count=100):
             return True
 
         return False
@@ -169,10 +169,10 @@ class BigmapPlane(UI):
         """
         for index, button in enumerate(FLOOR_BUTTONS):
             # Gray button, not current floor
-            if self.image_color_count(button, color=(117, 117, 117), threshold=221, count=200):
+            if self.image_color_count(button, color=(117, 117, 117), threshold=30, count=200):
                 continue
             # White button, current floor
-            if self.image_color_count(button, color=(233, 233, 233), threshold=221, count=200):
+            if self.image_color_count(button, color=(233, 233, 233), threshold=30, count=200):
                 return index + 1
 
         # logger.warning('Cannot get current floor')

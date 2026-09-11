@@ -98,7 +98,7 @@ STORY_SKIP = ButtonWrapper(
     share=Button(
         file='./assets/share/base/daemon/STORY_SKIP.png',
         area=(985, 41, 1001, 59),
-        search=(965, 21, 1021, 79),
+        search=(860, 31, 1032, 68),
         color=(74, 73, 82),
         button=(985, 41, 1001, 59),
     ),

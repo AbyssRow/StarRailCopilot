@@ -235,7 +235,7 @@ class RogueEvent(RogueUI):
         self.options += [OptionButton(
             prefix_icon=icon,
             is_valid=self.image_color_count(icon.area, color=(
-                181, 162, 126), threshold=221, count=25),
+                181, 162, 126), threshold=30, count=25),
             is_bottom_page=is_bottom_page
         ) for icon in option_icons]
         if option_icons:

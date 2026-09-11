@@ -105,11 +105,11 @@ class AssignmentDispatch(AssignmentUI):
                 continue
             # Select
             if self.interval_is_reached(CHARACTER_1_SELECTED, interval=5):
-                if not self.image_color_count(CHARACTER_1_SELECTED, (240, 240, 240), threshold=221, count=160):
+                if not self.image_color_count(CHARACTER_1_SELECTED, (240, 240, 240), threshold=30, count=160):
                     self.device.click(CHARACTER_1)
                 self.interval_reset(CHARACTER_1_SELECTED, interval=5)
             if self.interval_is_reached(CHARACTER_2_SELECTED, interval=5):
-                if not self.image_color_count(CHARACTER_2_SELECTED, (240, 240, 240), threshold=221, count=160):
+                if not self.image_color_count(CHARACTER_2_SELECTED, (240, 240, 240), threshold=30, count=160):
                     self.device.click(CHARACTER_2)
                 self.interval_reset(CHARACTER_2_SELECTED, interval=5)
 

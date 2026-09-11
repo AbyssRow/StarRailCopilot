@@ -23,11 +23,11 @@ class Fuel(StaminaStatus):
         2. COMBAT_AGAIN
         """
         if self.appear(COMBAT_AGAIN):
-            if self.image_color_count(COMBAT_AGAIN, color=(227, 227, 228), threshold=221, count=50):
+            if self.image_color_count(COMBAT_AGAIN, color=(227, 227, 228), threshold=30, count=50):
                 logger.info(f'Use fuel finished at COMBAT_AGAIN')
                 return True
         if self.appear(COMBAT_PREPARE):
-            if self.image_color_count(COMBAT_PREPARE.button, color=(230, 230, 230), threshold=240, count=400):
+            if self.image_color_count(COMBAT_PREPARE.button, color=(230, 230, 230), threshold=15, count=400):
                 logger.info(f'Use fuel finished at COMBAT_PREPARE')
                 return True
         return False

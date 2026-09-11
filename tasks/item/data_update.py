@@ -76,15 +76,26 @@ class DataUpdate(ItemUI, PlannerMixin):
         Page:
             in: page_gacha
         """
+        # wait gacha page fully loaded
+        for _ in self.loop(timeout=1.5):
+            if self.match_template_color(page_gacha.check_button):
+                break
+        else:
+            logger.warning('Wait page_gacha fully loaded timeout')
+
         ocr = DataDigit(OCR_SPECIAL_PASS)
         timeout = Timer(2, count=6).start()
         special_pass = 0
         for _ in self.loop():
             data = ocr.detect_and_ocr(self.device.image)
             if len(data) == 1:
-                special_pass = int(re.sub(r'\s', '', data[0].ocr_text))
-                if special_pass > 0:
-                    break
+                text = re.sub(r'\s', '', data[0].ocr_text)
+                try:
+                    special_pass = int(text)
+                    if special_pass >= 0:
+                        break
+                except ValueError:
+                    pass
 
             logger.warning(f'Invalid special pass: {data}')
             if timeout.reached():

@@ -146,7 +146,7 @@ class RogueBlessingSelector(RogueSelector):
         return results
 
     def _blessing_confirm_appear(self) -> bool:
-        return self.main.image_color_count(BLESSING_CONFIRM, color=(223, 223, 223), threshold=221, count=500)
+        return self.main.image_color_count(BLESSING_CONFIRM, color=(223, 223, 223), threshold=30, count=500)
 
     def ui_select(self, target: OcrResultButton | None, skip_first_screenshot=True):
         """
