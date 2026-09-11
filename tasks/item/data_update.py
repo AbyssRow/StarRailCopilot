@@ -76,6 +76,13 @@ class DataUpdate(ItemUI, PlannerMixin):
         Page:
             in: page_gacha
         """
+        # wait gacha page fully loaded
+        for _ in self.loop(timeout=1.5):
+            if self.match_template_color(page_gacha.check_button):
+                break
+        else:
+            logger.warning('Wait page_gacha fully loaded timeout')
+
         ocr = DataDigit(OCR_SPECIAL_PASS)
         timeout = Timer(2, count=6).start()
         special_pass = 0
