@@ -19,9 +19,9 @@ class TrashBin(Daemon):
 
     def is_in_camera(self):
         # Green icon
-        if self.image_color_count(TAKE_PHOTO, color=(134, 209, 187), threshold=221, count=200):
+        if self.image_color_count(TAKE_PHOTO, color=(134, 209, 187), threshold=30, count=200):
             # White background
-            if self.image_color_count(TAKE_PHOTO, color=(235, 233, 237), threshold=221, count=1000):
+            if self.image_color_count(TAKE_PHOTO, color=(235, 233, 237), threshold=30, count=1000):
                 return True
         return False
 

@@ -65,7 +65,7 @@ class CombatObtain(PlannerMixin):
             else:
                 self.device.screenshot()
 
-            if self.image_color_count(ITEM_NAME, color=(0, 0, 0), threshold=221, count=50):
+            if self.image_color_count(ITEM_NAME, color=(0, 0, 0), threshold=30, count=50):
                 break
             if timeout.reached():
                 logger.warning('Wait obtain item timeout')

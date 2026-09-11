@@ -41,14 +41,14 @@ class DungeonEvent(UI):
             area = area_offset(DOUBLE_CALYX_EVENT_TAG.area, (0, 136))
         else:
             area = DOUBLE_CALYX_EVENT_TAG.area
-        has = self.image_color_count(area, color=(252, 209, 123), threshold=221, count=50)
-        has |= self.image_color_count(area, color=(252, 251, 140), threshold=221, count=50)
+        has = self.image_color_count(area, color=(252, 209, 123), threshold=30, count=50)
+        has |= self.image_color_count(area, color=(252, 251, 140), threshold=30, count=50)
         # Anniversary 3x rogue event
-        has |= self.image_color_count(area, color=(229, 62, 44), threshold=221, count=50)
+        has |= self.image_color_count(area, color=(229, 62, 44), threshold=30, count=50)
         # 3rd anniversary has blue icon
-        has |= self.image_color_count(area, color=(60, 108, 254), threshold=221, count=50)
+        has |= self.image_color_count(area, color=(60, 108, 254), threshold=30, count=50)
         # gold flashing animation
-        has |= self.image_color_count(area, color=(255, 255, 122), threshold=221, count=50)
+        has |= self.image_color_count(area, color=(255, 255, 122), threshold=30, count=50)
         logger.attr('Double calyx', has)
         return has
 
@@ -61,10 +61,10 @@ class DungeonEvent(UI):
             area = area_offset(DOUBLE_RELIC_EVENT_TAG.area, (0, 136))
         else:
             area = DOUBLE_RELIC_EVENT_TAG.area
-        has = self.image_color_count(area, color=(252, 209, 123), threshold=221, count=50)
-        has |= self.image_color_count(area, color=(252, 251, 140), threshold=221, count=50)
+        has = self.image_color_count(area, color=(252, 209, 123), threshold=30, count=50)
+        has |= self.image_color_count(area, color=(252, 251, 140), threshold=30, count=50)
         # Anniversary 3x rogue event
-        has |= self.image_color_count(area, color=(229, 62, 44), threshold=221, count=50)
+        has |= self.image_color_count(area, color=(229, 62, 44), threshold=30, count=50)
         logger.attr('Double relic', has)
         if has:
             return has
@@ -74,9 +74,9 @@ class DungeonEvent(UI):
         if self.appear(PINNED_RELIC_CHECK):
             PINNED_RELIC_EVENT_TAG.load_offset(PINNED_RELIC_CHECK)
             area = PINNED_RELIC_EVENT_TAG.button
-            has = self.image_color_count(area, color=(252, 209, 123), threshold=221, count=50)
-            has |= self.image_color_count(area, color=(252, 251, 140), threshold=221, count=50)
-            has |= self.image_color_count(area, color=(229, 62, 44), threshold=221, count=50)
+            has = self.image_color_count(area, color=(252, 209, 123), threshold=30, count=50)
+            has |= self.image_color_count(area, color=(252, 251, 140), threshold=30, count=50)
+            has |= self.image_color_count(area, color=(229, 62, 44), threshold=30, count=50)
             logger.attr('Double relic (pinned)', has)
             if has:
                 return has
@@ -93,10 +93,10 @@ class DungeonEvent(UI):
             area = area_offset(DOUBLE_ROGUE_EVENT_TAG.area, (0, 136))
         else:
             area = DOUBLE_ROGUE_EVENT_TAG.area
-        has = self.image_color_count(area, color=(252, 209, 123), threshold=221, count=50)
-        has |= self.image_color_count(area, color=(252, 251, 140), threshold=221, count=50)
+        has = self.image_color_count(area, color=(252, 209, 123), threshold=30, count=50)
+        has |= self.image_color_count(area, color=(252, 251, 140), threshold=30, count=50)
         # Anniversary 3x rogue event
-        has |= self.image_color_count(area, color=(229, 62, 44), threshold=221, count=50)
+        has |= self.image_color_count(area, color=(229, 62, 44), threshold=30, count=50)
         logger.attr('Double rogue', has)
         return has
 
@@ -108,13 +108,13 @@ class DungeonEvent(UI):
         has = self.image_color_count(
             button,
             color=(231, 188, 103),
-            threshold=240, count=1000
+            threshold=15, count=1000
         )
         # Anniversary 3x event
         has |= self.image_color_count(
             button,
             color=(229, 62, 44),
-            threshold=221, count=50
+            threshold=30, count=50
         )
         logger.attr('Double event at combat', has)
         return has

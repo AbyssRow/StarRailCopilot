@@ -3,7 +3,7 @@ import numpy as np
 
 from module.base.decorator import cached_property
 from module.base.timer import Timer
-from module.base.utils import Points, color_similarity_2d
+from module.base.utils import Points, color_mask
 from module.logger import logger
 from tasks.base.page import page_main
 from tasks.combat.assets.assets_combat_interact import DUNGEON_COMBAT_INTERACT
@@ -24,8 +24,7 @@ class Radar(MapResource):
         """
         radius = self.MINIMAP_RADIUS * 1.2
         image = self.get_minimap(image, radius=radius)
-        image = color_similarity_2d(image, color=(217, 177, 61))
-        cv2.inRange(image, 180, 255, dst=image)
+        image = color_mask(image, color=(217, 177, 61), threshold=75)
         try:
             points = np.array(cv2.findNonZero(image))[:, 0, :]
         except IndexError:

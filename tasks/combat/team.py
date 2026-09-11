@@ -29,7 +29,7 @@ class CombatTeam(UI):
         ]:
             button.load_search(TEAM_SEARCH.area)
             if self.match_template_luma(button, similarity=0.92):
-                if self.image_color_count(button.button, color=(255, 234, 191), threshold=180, count=50):
+                if self.image_color_count(button.button, color=(255, 234, 191), threshold=75, count=50):
                     team = button_to_index(button)
                     break
 

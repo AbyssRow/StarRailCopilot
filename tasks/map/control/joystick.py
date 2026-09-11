@@ -210,11 +210,11 @@ class MapControlJoystick(UI):
 
         # 190~205
         run = image[185:210, :]
-        if self.image_color_count(run, color=(223, 199, 145), threshold=221, count=100):
+        if self.image_color_count(run, color=(223, 199, 145), threshold=30, count=100):
             return 'run'
         # 90~100
         walk = image[85:105, :]
-        if self.image_color_count(walk, color=(235, 235, 235), threshold=221, count=50):
+        if self.image_color_count(walk, color=(235, 235, 235), threshold=30, count=50):
             return 'walk'
 
         return ''
@@ -250,7 +250,7 @@ class MapControlJoystick(UI):
             if matched_button is not None:
                 button.load_offset(matched_button)
             points.append(self.image_color_count(area_offset(button.area, button.button_offset), color=(255, 255, 255),
-                                                 threshold=221, count=20))
+                                                 threshold=30, count=20))
         count = sum(points)
         logger.attr('TechniquePoints', count)
         return count
@@ -292,7 +292,7 @@ class MapControlJoystick(UI):
         Returns:
             bool: If clicked.
         """
-        is_running = self.image_color_count(RUN_BUTTON, color=(208, 183, 138), threshold=221, count=100)
+        is_running = self.image_color_count(RUN_BUTTON, color=(208, 183, 138), threshold=30, count=100)
 
         if run and not is_running and self.map_run_2x_timer.reached():
             self.device.click(RUN_BUTTON)

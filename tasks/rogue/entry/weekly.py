@@ -11,7 +11,7 @@ class RogueRewardHandler(RogueUI):
         Pages:
             in: is_page_rogue_main()
         """
-        if self.image_color_count(REWARD_RED_DOT, color=(214, 45, 47), threshold=221, count=50):
+        if self.image_color_count(REWARD_RED_DOT, color=(214, 45, 47), threshold=30, count=50):
             logger.info('Rogue reward red dot found')
             return True
         if self.match_template_color(REWARD_MESSAGE):
@@ -103,7 +103,7 @@ class RogueRewardHandler(RogueUI):
                 if self.handle_popup_confirm():
                     continue
             if self.interval_is_reached(CLAIM_ALL, interval=1):
-                if self.image_color_count(CLAIM_ALL, color=(255, 199, 89), threshold=221, count=500):
+                if self.image_color_count(CLAIM_ALL, color=(255, 199, 89), threshold=30, count=500):
                     self.device.click(CLAIM_ALL)
                     self.interval_reset(CLAIM_ALL, interval=1)
                     appear = True

@@ -209,7 +209,7 @@ class DraggableList:
 
     def is_row_selected(self, button: OcrResultButton, main: ModuleBase) -> bool:
         # Having gold letters
-        if main.image_color_count(button, color=self.active_color, threshold=221, count=50):
+        if main.image_color_count(button, color=self.active_color, threshold=30, count=50):
             return True
 
         return False

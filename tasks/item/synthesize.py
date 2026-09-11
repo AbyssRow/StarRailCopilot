@@ -4,7 +4,7 @@ import numpy as np
 import module.config.server as server
 from module.base.decorator import cached_property
 from module.base.timer import Timer
-from module.base.utils import SelectedGrids, color_similarity_2d, crop, image_size, rgb2luma
+from module.base.utils import SelectedGrids, color_mask, crop, image_size, rgb2luma
 from module.exception import ScriptError
 from module.logger import logger
 from module.ocr.ocr import Digit, Ocr
@@ -29,17 +29,24 @@ RARITY_COLOR = {
 }
 
 
-def image_color_count(image, color, threshold=221):
-    mask = color_similarity_2d(image, color=color)
-    cv2.inRange(mask, threshold, 255, dst=mask)
+def image_color_count(image, color, threshold=30):
+    """
+    Args:
+        image:
+        color (tuple): RGB.
+        threshold (int): 0-255, 0 means colors are the same, the higher the worse.
+
+    Returns:
+        int: Pixels count.
+    """
+    mask = color_mask(image, color=color, threshold=threshold)
     sum_ = cv2.countNonZero(mask)
     return sum_
 
 
 class WhiteStrip(Ocr):
     def pre_process(self, image):
-        mask = color_similarity_2d(image, color=(255, 255, 255))
-        mask = cv2.inRange(mask, 160, 255, dst=mask)
+        mask = color_mask(image, color=(255, 255, 255), threshold=95)
 
         mask = np.mean(mask, axis=0)
         try:
@@ -136,7 +143,7 @@ class Synthesize(CombatObtain, ItemUI, SynthesizeUI):
         # Must contain 30% target color at icon bottom
         minimum = x2 * (y2 - y1) * 0.3
         for rarity, color in RARITY_COLOR.items():
-            count = image_color_count(image, color=color, threshold=221)
+            count = image_color_count(image, color=color, threshold=30)
             # print(rarity, count, minimum)
             if count > minimum:
                 return rarity
@@ -177,7 +184,7 @@ class Synthesize(CombatObtain, ItemUI, SynthesizeUI):
             # must have white letter below to avoid mis-detection on blue background
             area = ENTRY_ITEM_FROM_LEFT.area
             area = (area[0], area[3], area[2], area[3] + 30)
-            if self.image_color_count(area, color=(255, 255, 255), threshold=221, count=30):
+            if self.image_color_count(area, color=(255, 255, 255), threshold=30, count=30):
                 logger.attr('SynthesizeRarity', 'purple (LEFT)')
                 return 'purple'
         # Check item in the middle
@@ -517,10 +524,10 @@ class Synthesize(CombatObtain, ItemUI, SynthesizeUI):
         self.interval_clear([SYNTHESIZE_CONFIRM, page_synthesize.check_button])
 
         def appear_confirm():
-            return self.image_color_count(SYNTHESIZE_CONFIRM, color=(226, 229, 232), threshold=221, count=1000)
+            return self.image_color_count(SYNTHESIZE_CONFIRM, color=(226, 229, 232), threshold=30, count=1000)
 
         def appear_insufficient():
-            return self.image_color_count(SYNTHESIZE_INSUFFICIENT, color=(172, 95, 87), threshold=221, count=5000)
+            return self.image_color_count(SYNTHESIZE_INSUFFICIENT, color=(172, 95, 87), threshold=30, count=5000)
 
         # SYNTHESIZE_CONFIRM -> reward_appear
         while 1:

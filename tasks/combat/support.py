@@ -3,7 +3,7 @@ import numpy as np
 
 from module.base.decorator import cached_property, del_cached_property
 from module.base.timer import Timer
-from module.base.utils import crop, image_size, load_image, color_similarity_2d, random_rectangle_vector_opted
+from module.base.utils import color_mask, crop, image_size, load_image, random_rectangle_vector_opted
 from module.exception import ScriptError
 from module.logger import logger
 from module.ui.scroll import AdaptiveScroll
@@ -128,8 +128,7 @@ class SupportCharacter:
             return False
         area = (left, area[1], area[0], area[3])
         mask = crop(self.screenshot, area, copy=False)
-        mask = color_similarity_2d(mask, color=(255, 255, 255))
-        cv2.inRange(mask, 221, 255, dst=mask)
+        mask = color_mask(mask, color=(255, 255, 255), threshold=34)
         sum_ = cv2.countNonZero(mask)
         return sum_ > 150
 
@@ -233,7 +232,7 @@ class CombatSupport(CombatState):
         logger.info('Support disable friend only')
         interval = Timer.from_seconds(3)
         for _ in self.loop():
-            appear = self.image_color_count(FRIEND_ONLY, color=(255, 200, 112), threshold=221, count=400)
+            appear = self.image_color_count(FRIEND_ONLY, color=(255, 200, 112), threshold=30, count=400)
             if appear:
                 if interval.reached():
                     self.device.click(FRIEND_ONLY)

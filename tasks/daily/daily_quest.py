@@ -197,7 +197,7 @@ class DailyQuestUI(DungeonUI, RouteLoader):
                 ACTIVE_POINTS_5_UNLOCK
             ]:
                 # Black gift icon
-                if self.image_color_count(b, color=(61, 53, 53), threshold=221, count=100):
+                if self.image_color_count(b, color=(61, 53, 53), threshold=30, count=100):
                     return b
             return None
 
