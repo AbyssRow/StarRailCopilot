@@ -232,7 +232,7 @@ class CombatSupport(CombatState):
         logger.info('Support disable friend only')
         interval = Timer.from_seconds(3)
         for _ in self.loop():
-            appear = self.image_color_count(FRIEND_ONLY, color=(255, 200, 112), threshold=221, count=400)
+            appear = self.image_color_count(FRIEND_ONLY, color=(255, 200, 112), threshold=30, count=400)
             if appear:
                 if interval.reached():
                     self.device.click(FRIEND_ONLY)

@@ -135,7 +135,7 @@ class CombatState(UI):
         # COMBAT_DAMAGE_2 is for Echo_of_War_Rusted_Crypt_of_the_Iron_Carcass
         # which has a combat specific buff icon pushing COMBAT_DAMAGE downwards
         for b in [COMBAT_DAMAGE, COMBAT_DAMAGE_2]:
-            if self.image_color_count(b, color=(255, 255, 180), threshold=221, count=100):
+            if self.image_color_count(b, color=(255, 255, 180), threshold=30, count=100):
                 button = b
                 break
         if button is None:

@@ -13,7 +13,7 @@ class CombatSkill(UI):
         if not self.appear(IN_SKILL):
             return False
 
-        if not self.image_color_count(IN_SKILL, color=(255, 255, 255), threshold=180, count=50):
+        if not self.image_color_count(IN_SKILL, color=(255, 255, 255), threshold=75, count=50):
             return False
 
         return True
@@ -56,7 +56,7 @@ class CombatSkill(UI):
                 break
 
     def _is_skill_active(self, button):
-        flag = self.image_color_count(button, color=(220, 196, 145), threshold=221, count=50)
+        flag = self.image_color_count(button, color=(220, 196, 145), threshold=30, count=50)
         return flag
 
     def _skill_switch(self, check_button, click_button, skip_first_screenshot=True):

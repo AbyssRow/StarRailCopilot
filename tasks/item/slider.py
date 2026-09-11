@@ -101,7 +101,7 @@ class Slider:
         Returns:
             bool: If slider arrive detect area
         """
-        return self.main.image_color_count(detect, color=(255, 255, 255), threshold=235, count=50)
+        return self.main.image_color_count(detect, color=(255, 255, 255), threshold=20, count=50)
 
     def set(self, value: int, total: int, skip_first_screenshot=True):
         """

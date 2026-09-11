@@ -184,7 +184,7 @@ class Synthesize(CombatObtain, ItemUI, SynthesizeUI):
             # must have white letter below to avoid mis-detection on blue background
             area = ENTRY_ITEM_FROM_LEFT.area
             area = (area[0], area[3], area[2], area[3] + 30)
-            if self.image_color_count(area, color=(255, 255, 255), threshold=221, count=30):
+            if self.image_color_count(area, color=(255, 255, 255), threshold=30, count=30):
                 logger.attr('SynthesizeRarity', 'purple (LEFT)')
                 return 'purple'
         # Check item in the middle
@@ -524,10 +524,10 @@ class Synthesize(CombatObtain, ItemUI, SynthesizeUI):
         self.interval_clear([SYNTHESIZE_CONFIRM, page_synthesize.check_button])
 
         def appear_confirm():
-            return self.image_color_count(SYNTHESIZE_CONFIRM, color=(226, 229, 232), threshold=221, count=1000)
+            return self.image_color_count(SYNTHESIZE_CONFIRM, color=(226, 229, 232), threshold=30, count=1000)
 
         def appear_insufficient():
-            return self.image_color_count(SYNTHESIZE_INSUFFICIENT, color=(172, 95, 87), threshold=221, count=5000)
+            return self.image_color_count(SYNTHESIZE_INSUFFICIENT, color=(172, 95, 87), threshold=30, count=5000)
 
         # SYNTHESIZE_CONFIRM -> reward_appear
         while 1:

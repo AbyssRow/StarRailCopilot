@@ -24,13 +24,13 @@ class RedemptionCode(UI):
 
         appear = False
         # yellow confirm button
-        if self.image_color_count(INPUT_CHECK, color=(255, 199, 89), count=400, threshold=221):
+        if self.image_color_count(INPUT_CHECK, color=(255, 199, 89), count=400, threshold=30):
             appear = True
         # pure white button at bottom
-        if self.image_color_count(INPUT_CHECK, color=(255, 255, 255), count=10000, threshold=221):
+        if self.image_color_count(INPUT_CHECK, color=(255, 255, 255), count=10000, threshold=30):
             appear = True
         # input border become orange
-        if self.image_color_count(INPUT_BORDER, color=(210, 119, 10), count=100, threshold=221):
+        if self.image_color_count(INPUT_BORDER, color=(210, 119, 10), count=100, threshold=30):
             appear = True
 
         if appear and interval:
@@ -39,7 +39,7 @@ class RedemptionCode(UI):
         return appear
 
     def is_code_invalid(self):
-        return self.image_color_count(CODE_INVALID, color=(186, 78, 82), count=400, threshold=221)
+        return self.image_color_count(CODE_INVALID, color=(186, 78, 82), count=400, threshold=30)
 
     def _code_enter(self):
         """
@@ -109,7 +109,7 @@ class RedemptionCode(UI):
                 # check if POPUP_CONFIRM is white
                 area = POPUP_CONFIRM.button
                 area = (area[0] - 50, area[1] - 5, area[2] + 50, area[3] + 5)
-                if self.image_color_count(area, color=(225, 225, 225), count=500, threshold=221):
+                if self.image_color_count(area, color=(225, 225, 225), count=500, threshold=30):
                     logger.info('Code inputted')
                     break
 

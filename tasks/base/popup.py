@@ -178,10 +178,10 @@ class PopupHandler(ModuleBase):
         """
         # Tutorial popup
         if self.appear(TUTORIAL_CHECK, interval=interval):
-            if self.image_color_count(TUTORIAL_CLOSE, color=(255, 255, 255), threshold=180, count=400):
+            if self.image_color_count(TUTORIAL_CLOSE, color=(255, 255, 255), threshold=75, count=400):
                 self.device.click(TUTORIAL_CLOSE)
                 return True
-            if self.image_color_count(TUTORIAL_NEXT, color=(255, 255, 255), threshold=180, count=50):
+            if self.image_color_count(TUTORIAL_NEXT, color=(255, 255, 255), threshold=75, count=50):
                 self.device.click(TUTORIAL_NEXT)
                 return True
         return False

@@ -33,7 +33,7 @@ class RelicsUI(ItemUI):
         if interval and not self.interval_is_reached(button, interval=interval):
             return False
 
-        appear = self.image_color_count(button, color=(242, 158, 56), threshold=180, count=20)
+        appear = self.image_color_count(button, color=(242, 158, 56), threshold=75, count=20)
 
         if appear and interval:
             self.interval_reset(button, interval=interval)

@@ -17,7 +17,7 @@ class AgreementHandler(UI):
             return True
         if self.appear(TOS_AGREE_TEXT, interval=3):
             # Select checkbox
-            if not self.image_color_count(TOS_AGREE_CHECKBOX, color=(254, 240, 108), count=20, threshold=180):
+            if not self.image_color_count(TOS_AGREE_CHECKBOX, color=(254, 240, 108), count=20, threshold=75):
                 self.device.click(TOS_AGREE_CHECKBOX)
                 return True
         return False

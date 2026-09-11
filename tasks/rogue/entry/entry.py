@@ -113,7 +113,7 @@ class RogueEntry(RouteBase, RogueRewardHandler, RoguePathHandler, DungeonRogueUI
                 continue
 
             if self.is_page_rogue_main() \
-                    and self.image_color_count(OCR_WORLD, color=(255, 255, 255), threshold=221, count=50):
+                    and self.image_color_count(OCR_WORLD, color=(255, 255, 255), threshold=30, count=50):
                 current = ocr.ocr_single_line(self.device.image)
                 if current:
                     break
@@ -195,7 +195,7 @@ class RogueEntry(RouteBase, RogueRewardHandler, RoguePathHandler, DungeonRogueUI
                 continue
 
             if self.is_page_rogue_main() \
-                    and self.image_color_count(OCR_WORLD, color=(255, 255, 255), threshold=221, count=50):
+                    and self.image_color_count(OCR_WORLD, color=(255, 255, 255), threshold=30, count=50):
                 current = ocr.ocr_single_line(self.device.image)
                 if not current:
                     continue
@@ -246,7 +246,7 @@ class RogueEntry(RouteBase, RogueRewardHandler, RoguePathHandler, DungeonRogueUI
                 self.interval_reset(REWARD_ENTER, interval=2)
                 continue
             if self.match_template_color(LEVEL_CONFIRM, interval=2):
-                if not self.image_color_count(LEVEL_CONFIRM, color=(223, 223, 225), threshold=240, count=50):
+                if not self.image_color_count(LEVEL_CONFIRM, color=(223, 223, 225), threshold=15, count=50):
                     self.interval_clear(LEVEL_CONFIRM)
                     continue
                 self.update_stamina_status()
