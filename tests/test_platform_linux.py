@@ -242,6 +242,35 @@ class LinuxAVDLifecycleStartTest(unittest.TestCase):
 
         self.assertEqual(boundary.launches, [])
 
+    @patch.dict(os.environ, {'DISPLAY': ':0', 'XDG_RUNTIME_DIR': '/run/user/1000'}, clear=True)
+    @patch('module.device.platform.linux_avd.os.access', return_value=True)
+    @patch('module.device.platform.linux_avd.os.path.isfile', return_value=True)
+    @patch(
+        'module.device.platform.linux_avd.os.path.getmtime',
+        side_effect=lambda path: 1 if path.endswith('old') else 2,
+    )
+    @patch(
+        'module.device.platform.linux_avd.glob.glob',
+        return_value=[
+            '/run/user/1000/.mutter-Xwaylandauth.old',
+            '/run/user/1000/.mutter-Xwaylandauth.new',
+        ],
+    )
+    def test_launch_refreshes_latest_xwayland_authorization(
+            self, _glob, _mtime, _isfile, _access):
+        """Catches a long-lived service retaining a stale Xwayland cookie."""
+        boundary = FakeAndroidBoundary(running=False)
+        lifecycle = self.lifecycle(boundary)
+
+        self.assertTrue(lifecycle.start())
+
+        launch_environment = boundary.launches[0][1]['env']
+        self.assertEqual(
+            launch_environment['XAUTHORITY'],
+            '/run/user/1000/.mutter-Xwaylandauth.new',
+        )
+        self.assertEqual(launch_environment['DISPLAY'], ':0')
+
     def test_boot_timeout_reports_phase_and_attempts_cleanup(self):
         """Catches an unbounded boot wait or a timed-out emulator left running."""
         boundary = FakeAndroidBoundary(running=False, boot_outputs=['', '', '', ''])

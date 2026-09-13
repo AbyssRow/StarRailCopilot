@@ -1,3 +1,4 @@
+import glob
 import os
 import signal
 import subprocess
@@ -68,6 +69,26 @@ class LinuxAVDLifecycle:
     @staticmethod
     def _start_process(command, **kwargs):
         return subprocess.Popen(command, **kwargs)
+
+    @staticmethod
+    def _launch_environment():
+        """Refresh Xwayland authorization before launching a host-GPU AVD."""
+        environment = os.environ.copy()
+        if not environment.get('DISPLAY'):
+            return environment
+
+        runtime_dir = environment.get('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
+        pattern = os.path.join(runtime_dir, '.mutter-Xwaylandauth.*')
+        candidates = []
+        for path in glob.glob(pattern):
+            try:
+                if os.path.isfile(path) and os.access(path, os.R_OK):
+                    candidates.append((os.path.getmtime(path), path))
+            except OSError:
+                continue
+        if candidates:
+            environment['XAUTHORITY'] = max(candidates)[1]
+        return environment
 
     @staticmethod
     def _iter_processes():
@@ -211,6 +232,7 @@ class LinuxAVDLifecycle:
             stderr=subprocess.STDOUT,
             close_fds=True,
             start_new_session=True,
+            env=self._launch_environment(),
         )
         self._launched_process_group = getattr(self._launched_process, 'pid', None)
 
